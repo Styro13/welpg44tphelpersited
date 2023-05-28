@@ -51,7 +51,8 @@ public class PlayerCharacterControllerMovement : Movement
     float stepCycle;
     float nextStep;
     [Tooltip("Option to automatically run forward while both mouse buttons are pressed. This can be useful for long stretches of walking.")]
-    public bool runWhileBothMouseButtonsPressed = true;
+    public bool runWhileBothMouseButtonsPressed = false; // Set to false
+
 
     [Header("Swimming")]
     public float swimSpeed = 4;
@@ -1528,8 +1529,9 @@ public class PlayerCharacterControllerMovement : Movement
                     InitializeForcedLook();
 
                 // holding right button? then rotate
-                if (Input.GetMouseButton(mouseRotateButton) &&
-                    !Utils.IsCursorOverUserInterface())
+                if (!Utils.IsCursorOverUserInterface() &&
+                    UIWindow.currentlyDragged == null &&
+                    UIDragAndDropable.currentlyDragged == null)
                 {
                     // we are rotating with a mouse
                     rotatingWithMouse = true;
