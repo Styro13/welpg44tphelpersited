@@ -6,11 +6,11 @@ Info: ULogin Pro addon for MFPS 2.0
 */
 
 const GAME_VERSION = '1.9.2';
-const HOST_NAME = 'pdb58.awardspace.net';
-const DATA_BASE_NAME = '4218054_game';
-const DATA_BASE_USER = '4218054_game';
-const DATA_BASE_PASSWORLD = 'AwardSpace13!';
-const SECRET_KEY = '123456'; //IMPORTANT! has to match with the SecretKey in the game client build.
+const HOST_NAME = 'LOCATION OF THE DB';
+const DATA_BASE_NAME = '';
+const DATA_BASE_USER = '';
+const DATA_BASE_PASSWORLD = '';
+const SECRET_KEY = ''; //IMPORTANT! has to match with the SecretKey in the game client build.
 
 const PER_TO_PER_ENCRYPTION = false;
 const ADMIN_EMAIL = 'email@example.com'; // email address from which the verification emails will be send.
