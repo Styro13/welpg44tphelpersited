@@ -1,16 +1,11 @@
 <?php
-/*
-ULogin Pro
-Version: 2.3.0
-Info: ULogin Pro addon for MFPS 2.0
-*/
 
 const GAME_VERSION = '1.9.2';
 const HOST_NAME = 'LOCATION OF THE DB';
-const DATA_BASE_NAME = '';
-const DATA_BASE_USER = '';
-const DATA_BASE_PASSWORLD = '';
-const SECRET_KEY = ''; //IMPORTANT! has to match with the SecretKey in the game client build.
+const DATA_BASE_NAME = 'DATABASE NAME';
+const DATA_BASE_USER = 'USERNAME';
+const DATA_BASE_PASSWORLD = 'PASSWORD';
+const SECRET_KEY = 'SECRETKEY'; //IMPORTANT! has to match with the SecretKey in the game client build.
 
 const PER_TO_PER_ENCRYPTION = false;
 const ADMIN_EMAIL = 'email@example.com'; // email address from which the verification emails will be send.
