@@ -1,0 +1,1855 @@
+local player1=nil
+local player2=nil
+local wvote=nil
+local bvote=nil
+local death=0
+local prime=nil
+local turn=player1
+local selectedpiece=nil
+local w=script.Parent["White"]
+local white={
+	Pawn1={Row=2, Column=1}, 
+	Pawn2={Row=2, Column=2}, 
+	Pawn3={Row=2, Column=3}, 
+	Pawn4={Row=2, Column=4},
+	Pawn5={Row=2, Column=5},
+	Pawn6={Row=2, Column=6},
+	Pawn7={Row=2, Column=7},
+	Pawn8={Row=2, Column=8},
+	Rook1={Row=1, Column=1},
+	Knight1={Row=1, Column=2},
+	Bishop1={Row=1, Column=3},
+	Queen={Row=1, Column=4},
+	King={Row=1, Column=5},
+	Bishop2={Row=1, Column=6},
+	Knight2={Row=1, Column=7},
+	Rook2={Row=1, Column=8}
+}	
+local b=script.Parent["Black"]
+local black={
+	Pawn1={Row=2, Column=1}, 
+	Pawn2={Row=2, Column=2}, 
+	Pawn3={Row=2, Column=3}, 
+	Pawn4={Row=2, Column=4},
+	Pawn5={Row=2, Column=5},
+	Pawn6={Row=2, Column=6},
+	Pawn7={Row=2, Column=7},
+	Pawn8={Row=2, Column=8},
+	Rook1={Row=1, Column=1},
+	Knight1={Row=1, Column=2},
+	Bishop1={Row=1, Column=3},
+	Queen={Row=1, Column=4},
+	King={Row=1, Column=5},
+	Bishop2={Row=1, Column=6},
+	Knight2={Row=1, Column=7},
+	Rook2={Row=1, Column=8}
+}	
+local board=script.Parent["Board"]
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local function startgame()
+	death=0
+	--White
+	white={
+	Pawn1={Row=2, Column=1}, 
+	Pawn2={Row=2, Column=2}, 
+	Pawn3={Row=2, Column=3}, 
+	Pawn4={Row=2, Column=4},
+	Pawn5={Row=2, Column=5},
+	Pawn6={Row=2, Column=6},
+	Pawn7={Row=2, Column=7},
+	Pawn8={Row=2, Column=8},
+	Rook1={Row=1, Column=1},
+	Knight1={Row=1, Column=2},
+	Bishop1={Row=1, Column=3},
+	Queen={Row=1, Column=4},
+	King={Row=1, Column=5},
+	Bishop2={Row=1, Column=6},
+	Knight2={Row=1, Column=7},
+	Rook2={Row=1, Column=8}
+	}
+	for i=1,#w:GetChildren() do
+		local tv=white[w:GetChildren()[i].Name]
+		local spot=tv["Row"]
+		w:GetChildren()[i].Position=board[tv["Row"]][tv["Column"]].Position+Vector3.new(0, 0.125, 0)
+	end
+	
+	--Black
+	black={
+	Pawn1={Row=7, Column=1}, 
+	Pawn2={Row=7, Column=2}, 
+	Pawn3={Row=7, Column=3}, 
+	Pawn4={Row=7, Column=4},
+	Pawn5={Row=7, Column=5},
+	Pawn6={Row=7, Column=6},
+	Pawn7={Row=7, Column=7},
+	Pawn8={Row=7, Column=8},
+	Rook1={Row=8, Column=1},
+	Knight1={Row=8, Column=2},
+	Bishop1={Row=8, Column=3},
+	Queen={Row=8, Column=4},
+	King={Row=8, Column=5},
+	Bishop2={Row=8, Column=6},
+	Knight2={Row=8, Column=7},
+	Rook2={Row=8, Column=8}
+	}
+	for i=1,#b:GetChildren() do
+		local tv=black[b:GetChildren()[i].Name]
+		local spot=tv["Row"]
+		b:GetChildren()[i].Position=board[tv["Row"]][tv["Column"]].Position+Vector3.new(0, 0.125, 0)
+	end
+
+	--Start
+	turn="White"
+	script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is White's turn"
+end
+
+
+script.Parent["Black Seat"]:GetPropertyChangedSignal("Occupant"):connect(function()
+	--
+	if script.Parent["Black Seat"].Occupant==nil then
+		player2.Character.Humanoid:UnequipTools()
+		game.Debris:AddItem(player2.Backpack["Camera"],0)
+		player2=nil
+		return
+	end
+	if game.Players:GetPlayerFromCharacter(script.Parent["Black Seat"].Occupant.Parent) then
+		player2=game.Players:GetPlayerFromCharacter(script.Parent["Black Seat"].Occupant.Parent)
+		local tool=script.Parent.Camera:Clone()
+		tool.Parent=player2.Backpack
+		--autostart disabled in leiu of manual
+		--[[if player1~=nil then
+			startgame()
+		end]]
+	end
+end)
+
+script.Parent["White Seat"]:GetPropertyChangedSignal("Occupant"):connect(function()
+	--
+	if script.Parent["White Seat"].Occupant==nil then
+		player1.Character.Humanoid:UnequipTools()
+		game.Debris:AddItem(player1.Backpack["Camera"],0)
+		player1=nil
+		return
+	end
+	if game.Players:GetPlayerFromCharacter(script.Parent["White Seat"].Occupant.Parent) then
+		player1=game.Players:GetPlayerFromCharacter(script.Parent["White Seat"].Occupant.Parent)
+		local tool=script.Parent.Camera:Clone()
+		tool.Parent=player1.Backpack
+		--autostart disabled in leiu of manual
+		--[[if player2~=nil then
+			startgame()
+		end]]
+	end
+end)
+
+script.Parent["Manual Start"].ClickDetector.MouseClick:Connect(function(player)
+	if script.Parent["White Seat"].Occupant~=nil and player==game.Players:GetPlayerFromCharacter(script.Parent["White Seat"].Occupant.Parent) then
+		wvote=true
+		script.Parent["Manual Start"].BillboardGui.TextLabel.Text=script.Parent["Manual Start"].BillboardGui.TextLabel.Text.." (1/2)"
+	elseif script.Parent["Black Seat"].Occupant~=nil and player==game.Players:GetPlayerFromCharacter(script.Parent["Black Seat"].Occupant.Parent) then
+		bvote=true
+		script.Parent["Manual Start"].BillboardGui.TextLabel.Text=script.Parent["Manual Start"].BillboardGui.TextLabel.Text.." (1/2)"
+	else
+		return
+	end
+	if bvote==true and wvote==true and script.Parent.Signature.SurfaceGui.TextLabel.Text=="Chess" then 
+		wvote=nil
+		bvote=nil
+		startgame()
+	end
+end)
+
+local function interaction(pc, pl)
+	if script.Parent.Signature.SurfaceGui.TextLabel.Text~="Chess" then return end
+	if turn=="White" and pl~=player1 then
+		return
+	elseif turn=="Black" and pl~=player2 then
+		return
+	end
+	if prime==true then
+		if turn=="Black" and black[pc.Name]["Row"]>10 and pc.Parent.Name=="Black" then
+			local backup=black[pc.Name]
+			black[pc.Name]=black[selectedpiece.Name]
+			black[selectedpiece.Name]=backup
+			backup=selectedpiece.Position
+			selectedpiece.Position=pc.Position
+			pc.Position=backup
+			turn="White"
+			script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is White's turn"
+			prime=nil
+		elseif turn=="White" and white[pc.Name]["Row"]>10 and pc.Parent.Name=="White" then
+			local backup=white[pc.Name]
+			white[pc.Name]=white[selectedpiece.Name]
+			white[selectedpiece.Name]=backup
+			backup=selectedpiece.Position
+			selectedpiece.Position=pc.Position
+			pc.Position=backup
+			turn="Black"
+			script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is Black's turn"
+			prime=nil
+		end
+		for i = 1,#board:GetChildren() do
+			for oof = 1, #board:GetChildren()[i]:GetChildren() do
+				if board:GetChildren()[i]:GetChildren()[oof].Material~=Enum.Material.Wood then
+					board:GetChildren()[i]:GetChildren()[oof].Material="Wood"
+				end
+			end
+		end
+		return
+	end
+	if pc.Parent.Parent.Name~="Board" then 
+		selectedpiece=pc
+	else
+		if pc.Material==Enum.Material.Neon then
+			selectedpiece.Position=pc.Position+Vector3.new(0,0.125,0)
+			--white piece movement
+			if selectedpiece.Parent==w then
+				script.Parent.CameraFocus.Sound:Play()
+				white[selectedpiece.Name]["Row"]=tonumber(pc.Parent.Name)
+				white[selectedpiece.Name]["Column"]=tonumber(pc.Name)
+				for i,v in pairs(b:GetChildren()) do
+					if black[v.Name]["Row"]==tonumber(pc.Parent.Name) and black[v.Name]["Column"]==tonumber(pc.Name) then
+						death=death+1
+						black[v.Name]["Row"]=80
+						black[v.Name]["Column"]=80
+						v.Position=board["1"]["1"].CFrame.p+(board["1"]["1"].CFrame.rightVector*(0.15*death))+(board["1"]["1"].CFrame.lookVector*(-0.5))+Vector3.new(0,0.125,0)
+						if v.Name=="King" then
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text=player1.Name.."(White) wins!"
+							script.Parent["Manual Start"].BillboardGui.Enabled=true
+							wait(5)
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="Sit and Click to Start"
+						end
+					end
+				end
+				--Handle Pawns reaching opposite end
+				if selectedpiece.Name=="Pawn1" or selectedpiece.Name=="Pawn2" or selectedpiece.Name=="Pawn3" or selectedpiece.Name=="Pawn4" or selectedpiece.Name=="Pawn5" or selectedpiece.Name=="Pawn6" or selectedpiece.Name=="Pawn7" or selectedpiece.Name=="Pawn8" then
+					if pc.Parent.Name=="8" or pc.Parent.Name=="1" then
+						local huh=nil
+						for i,v in pairs(white) do
+							if v["Row"]>10 and huh==nil then
+								huh=true
+							end
+						end
+						if huh==true then
+							prime=true
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="Pick an out of play piece of yours to bring back"
+							return
+						else
+							turn="Black"
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is Black's turn"
+						end
+					else 
+						turn="Black"
+						script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is Black's turn"
+					end
+				else
+					turn="Black"
+					script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is Black's turn"
+				end
+			end
+			--black piece movement
+			if selectedpiece.Parent==b then
+				script.Parent.CameraFocus.Sound:Play()
+				black[selectedpiece.Name]["Row"]=tonumber(pc.Parent.Name)
+				black[selectedpiece.Name]["Column"]=tonumber(pc.Name)
+				for i,v in pairs(w:GetChildren()) do
+					if white[v.Name]["Row"]==tonumber(pc.Parent.Name) and white[v.Name]["Column"]==tonumber(pc.Name) then
+						death=death+1
+						white[v.Name]["Row"]=80
+						white[v.Name]["Column"]=80
+						v.Position=board["1"]["1"].CFrame.p+(board["1"]["1"].CFrame.rightVector*(0.15*death))+(board["1"]["1"].CFrame.lookVector*(-0.5))+Vector3.new(0,0.125,0)
+						if v.Name=="King" then
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text=player1.Name.."(Black) wins!"
+							script.Parent["Manual Start"].BillboardGui.Enabled=true
+							wait(5)
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="Sit and Click to Start"
+						end
+					end
+				end
+				--Handle Pawns reaching opposite end
+				if selectedpiece.Name=="Pawn1" or selectedpiece.Name=="Pawn2" or selectedpiece.Name=="Pawn3" or selectedpiece.Name=="Pawn4" or selectedpiece.Name=="Pawn5" or selectedpiece.Name=="Pawn6" or selectedpiece.Name=="Pawn7" or selectedpiece.Name=="Pawn8" then
+					if pc.Parent.Name=="8" or pc.Parent.Name=="1" then
+						local huh=nil
+						for i,v in pairs(black) do
+							if v["Row"]>10 and huh==nil then
+								huh=true
+							end
+						end
+						if huh==true then
+							prime=true
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="Pick an out of play piece of yours to bring back"
+							return
+						else
+							turn="White"
+							script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is White's turn"
+						end
+					else 
+						script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is White's turn"
+						turn="White"
+					end
+				else
+					script.Parent["Manual Start"].BillboardGui.TextLabel.Text="It is White's turn"
+					turn="White"
+				end
+			end
+		end
+	end
+	for i = 1,#board:GetChildren() do
+		for oof = 1, #board:GetChildren()[i]:GetChildren() do
+			if board:GetChildren()[i]:GetChildren()[oof].Material~=Enum.Material.Wood then
+				board:GetChildren()[i]:GetChildren()[oof].Material="Wood"
+			end
+		end
+	end
+	
+	--handle white pieces
+	if pc.Parent.Name=="White" and pl==player1 and white[selectedpiece.Name]["Row"]<10 then
+		if string.sub(pc.Name, 1, 1)=="P" then
+			--handle taking pieces
+			if white[pc.Name]["Row"]+1>8 then return end
+			for i,v in pairs(black) do
+				if v["Row"]==white[pc.Name]["Row"]+1 then
+					if v["Column"]==white[pc.Name]["Column"]+1 or v["Column"]==white[pc.Name]["Column"]-1 then
+						local spot=board[tostring(v["Row"])][tostring(v["Column"])]
+						spot.Material="Neon"
+					end
+				end
+			end
+			--
+			if white[pc.Name]["Row"]==2 then
+				--check if space is empty
+				local taken=nil
+				for n = 1, 2 do
+					if white[pc.Name]["Row"]+n>8 then return end
+					local spot=board[tostring(white[pc.Name]["Row"]+n)][tostring(white[pc.Name]["Column"])]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"]+n and v["Column"]==white[pc.Name]["Column"] then
+							taken=true
+						end
+					end
+					--
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"]+n and v["Column"]==white[pc.Name]["Column"] then
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			else
+				--
+				local taken=nil
+				if white[pc.Name]["Row"]+1 > 8 then return end
+				local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"])]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"] then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"] then
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+		end
+		if string.sub(pc.Name, 1,1)=="R" then
+			--forwards
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 then
+				for n=white[pc.Name]["Row"]+1, 8 do
+					local spot=board[tostring(n)][tostring(white[pc.Name]["Column"])]
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--backwards
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 then
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					local spot=board[tostring(n)][tostring(white[pc.Name]["Column"])]
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--sideways
+			local taken=nil
+			if white[pc.Name]["Column"]+1<=8 then
+				for n=white[pc.Name]["Column"]+1, 8 do
+					local spot=board[tostring(white[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+			local taken=nil
+			if white[pc.Name]["Column"]-1>0 then
+				for n=white[pc.Name]["Column"]-1, 1, -1 do
+					local spot=board[tostring(white[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+		end
+		if string.sub(pc.Name, 2,2)=="n" then
+			--up | right
+			local taken=nil
+			if white[pc.Name]["Row"]+2<=8 and white[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"]+2)][tostring(white[pc.Name]["Column"]-1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+2 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+2 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--up | left
+			local taken=nil
+			if white[pc.Name]["Row"]+2<=8 and white[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"]+2)][tostring(white[pc.Name]["Column"]+1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+2 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+2 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down | right
+			local taken=nil
+			if white[pc.Name]["Row"]-2>=1 and white[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"]-2)][tostring(white[pc.Name]["Column"]-1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]-2 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]-2 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down | left
+			local taken=nil
+			if white[pc.Name]["Row"]-2>=1 and white[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"]-2)][tostring(white[pc.Name]["Column"]+1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]-2 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]-2 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left | up
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]+2<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"]+2)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]+2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]+2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left | down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>=1 and white[pc.Name]["Column"]+2<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"]-1)][tostring(white[pc.Name]["Column"]+2)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]+2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]+2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right | up
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]-2>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"]-2)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]-2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]-2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right | down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>=1 and white[pc.Name]["Column"]-2>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"]-1)][tostring(white[pc.Name]["Column"]-2)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]-2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]-2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+		end
+		if string.sub(pc.Name, 1,1)=="B" then
+			--left up 
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=white[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if white[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]+eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--left down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if white[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]+eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right up 
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=white[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if white[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]-eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if white[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]-eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--
+		end
+		if string.sub(pc.Name, 1,1)=="Q" then
+			local taken=nil
+			--forwards
+			if white[pc.Name]["Row"]+1<=8 then
+				for n=white[pc.Name]["Row"]+1, 8 do
+					local spot=board[tostring(n)][tostring(white[pc.Name]["Column"])]
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--backwards
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 then
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					local spot=board[tostring(n)][tostring(white[pc.Name]["Column"])]
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--sideways
+			local taken=nil
+			if white[pc.Name]["Column"]+1<8 then
+				for n=white[pc.Name]["Column"]+1, 8 do
+					local spot=board[tostring(white[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+			local taken=nil
+			if white[pc.Name]["Column"]-1>0 then
+				for n=white[pc.Name]["Column"]-1, 1, -1 do
+					local spot=board[tostring(white[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--left up 
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=white[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if white[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]+eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--left down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if white[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]+eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right up 
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=white[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if white[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]-eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=white[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if white[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(white[pc.Name]["Column"]-eh)]
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==white[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--
+		end
+		if string.sub(pc.Name, 3,3)=="n" then
+			--up
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"])]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"]-1)][tostring(white[pc.Name]["Column"])]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"] and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left
+			local taken=nil
+			if white[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(white[pc.Name]["Row"])][tostring(white[pc.Name]["Column"]+1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"] and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"] and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right
+			local taken=nil
+			if white[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(white[pc.Name]["Row"])][tostring(white[pc.Name]["Column"]-1)]
+				for i,v in pairs(white) do
+					if v["Row"]==white[pc.Name]["Row"] and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(black) do
+					if v["Row"]==white[pc.Name]["Row"] and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--
+			--diagonals
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]+1<=8 then
+				if white[pc.Name]["Column"]+1<=8 then
+					local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"]+1)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--left down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]-1>0 then
+				if white[pc.Name]["Column"]+1<=8 then
+					local spot=board[white[pc.Name]["Row"]-1][tostring(white[pc.Name]["Column"]+1)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]+1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--right up 
+			local taken=nil
+			if white[pc.Name]["Row"]+1<=8 and white[pc.Name]["Column"]-1>0 then
+				if white[pc.Name]["Column"]+1<=8 then
+					local spot=board[tostring(white[pc.Name]["Row"]+1)][tostring(white[pc.Name]["Column"]-1)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"]+1 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--right down
+			local taken=nil
+			if white[pc.Name]["Row"]-1>0 and white[pc.Name]["Column"]-1>0 then
+				if white[pc.Name]["Column"]+1<=8 then
+					local spot=board[white[pc.Name]["Row"]-1][tostring(white[pc.Name]["Column"]-1)]
+					for i,v in pairs(white) do
+						if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(black) do
+						if v["Row"]==white[pc.Name]["Row"]-1 and v["Column"]==white[pc.Name]["Column"]-1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+		end
+	end
+	
+	--Handle black pieces
+	if pc.Parent.Name=="Black" and pl==player2 and black[selectedpiece.Name]["Row"]<10 then
+		if string.sub(pc.Name, 1, 1)=="P" then
+			--handle taking pieces
+			if black[pc.Name]["Row"]-1>=1 then
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-1 then
+						if v["Column"]==black[pc.Name]["Column"]-1 or v["Column"]==black[pc.Name]["Column"]+1 then
+							local spot=board[tostring(v["Row"])][tostring(v["Column"])]
+							spot.Material="Neon"
+						end
+					end
+				end
+			end
+			--
+			if black[pc.Name]["Row"]==7 then
+				--check if space is empty
+				local taken=nil
+				for n = 1, 2 do
+					if black[pc.Name]["Row"]-n>=1 then
+						local spot=board[tostring(black[pc.Name]["Row"]-n)][tostring(black[pc.Name]["Column"])]
+						for i,v in pairs(black) do
+							if v["Row"]==black[pc.Name]["Row"]-n and v["Column"]==black[pc.Name]["Column"] then
+								taken=true
+							end
+						end
+						--
+						for i,v in pairs(white) do
+							if v["Row"]==black[pc.Name]["Row"]-n and v["Column"]==black[pc.Name]["Column"] then
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			else
+				--
+				local taken=nil
+				if black[pc.Name]["Row"]-1 >= 1 then
+					local spot=board[tostring(black[pc.Name]["Row"]-1)][tostring(black[pc.Name]["Column"])]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"] then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"] then
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+		end
+		if string.sub(pc.Name, 1,1)=="R" then
+			--forwards
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 then
+				for n=black[pc.Name]["Row"]+1, 8 do
+					local spot=board[tostring(n)][tostring(black[pc.Name]["Column"])]
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--backwards
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 then
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					local spot=board[tostring(n)][tostring(black[pc.Name]["Column"])]
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--sideways
+			local taken=nil
+			if black[pc.Name]["Column"]+1<=8 then
+				for n=black[pc.Name]["Column"]+1, 8 do
+					local spot=board[tostring(black[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+			local taken=nil
+			if black[pc.Name]["Column"]-1>0 then
+				for n=black[pc.Name]["Column"]-1, 1, -1 do
+					local spot=board[tostring(black[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+		end
+		if string.sub(pc.Name, 2,2)=="n" then
+			--up | right
+			local taken=nil
+			if black[pc.Name]["Row"]+2<=8 and black[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"]+2)][tostring(black[pc.Name]["Column"]-1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]+2 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]+2 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--up | left
+			local taken=nil
+			if black[pc.Name]["Row"]+2<=8 and black[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"]+2)][tostring(black[pc.Name]["Column"]+1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]+2 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]+2 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down | right
+			local taken=nil
+			if black[pc.Name]["Row"]-2>=1 and black[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"]-2)][tostring(black[pc.Name]["Column"]-1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]-2 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-2 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down | left
+			local taken=nil
+			if black[pc.Name]["Row"]-2>=1 and black[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"]-2)][tostring(black[pc.Name]["Column"]+1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]-2 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-2 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left | up
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]+2<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"]+1)][tostring(black[pc.Name]["Column"]+2)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]+2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]+2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left | down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>=1 and black[pc.Name]["Column"]+2<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"]-1)][tostring(black[pc.Name]["Column"]+2)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]+2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]+2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right | up
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]-2>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"]+1)][tostring(black[pc.Name]["Column"]-2)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]-2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]-2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right | down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>=1 and black[pc.Name]["Column"]-2>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"]-1)][tostring(black[pc.Name]["Column"]-2)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]-2 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]-2 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+		end
+		if string.sub(pc.Name, 1,1)=="B" then
+			--left down 
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=black[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if black[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]-eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--left up
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if black[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]-eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right up 
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=black[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if black[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]+eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if black[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]+eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--
+		end
+		if string.sub(pc.Name, 1,1)=="Q" then
+			local taken=nil
+			--forwards
+			if black[pc.Name]["Row"]+1<=8 then
+				for n=black[pc.Name]["Row"]+1, 8 do
+					local spot=board[tostring(n)][tostring(black[pc.Name]["Column"])]
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--backwards
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 then
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					local spot=board[tostring(n)][tostring(black[pc.Name]["Column"])]
+					for i,v in pairs(black) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==n and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--sideways
+			local taken=nil
+			if black[pc.Name]["Column"]+1<8 then
+				for n=black[pc.Name]["Column"]+1, 8 do
+					local spot=board[tostring(black[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+			local taken=nil
+			if black[pc.Name]["Column"]-1>0 then
+				for n=black[pc.Name]["Column"]-1, 1, -1 do
+					local spot=board[tostring(black[pc.Name]["Row"])][tostring(n)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"] and v["Column"]==n and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--left up 
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=black[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if black[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]+eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--left down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if black[pc.Name]["Column"]+eh<=8 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]+eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]+eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right up 
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]-1>0 then
+				local eh=0
+				for n=black[pc.Name]["Row"]+1, 8 do
+					eh=eh+1
+					if black[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]-eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--right down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]+1<=8 then
+				local eh=0
+				for n=black[pc.Name]["Row"]-1, 1, -1 do
+					eh=eh+1
+					if black[pc.Name]["Column"]-eh>0 then
+						local spot=board[tostring(n)][tostring(black[pc.Name]["Column"]-eh)]
+						for i,v in pairs(black) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								taken=true
+							end
+						end
+						for i,v in pairs(white) do
+							if v["Row"]==n and v["Column"]==black[pc.Name]["Column"]-eh and taken==nil then
+								spot.Material="Neon"
+								taken=true
+							end
+						end
+						if taken==nil then spot.Material="Neon" end
+					end
+				end
+			end
+			--
+		end
+		if string.sub(pc.Name, 3,3)=="n" then
+			--up
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"]+1)][tostring(black[pc.Name]["Column"])]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"]-1)][tostring(black[pc.Name]["Column"])]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"] and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--left
+			local taken=nil
+			if black[pc.Name]["Column"]+1<=8 then
+				local spot=board[tostring(black[pc.Name]["Row"])][tostring(black[pc.Name]["Column"]+1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"] and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"] and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--right
+			local taken=nil
+			if black[pc.Name]["Column"]-1>=1 then
+				local spot=board[tostring(black[pc.Name]["Row"])][tostring(black[pc.Name]["Column"]-1)]
+				for i,v in pairs(black) do
+					if v["Row"]==black[pc.Name]["Row"] and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						taken=true
+					end
+				end
+				for i,v in pairs(white) do
+					if v["Row"]==black[pc.Name]["Row"] and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+						spot.Material="Neon"
+						taken=true
+					end
+				end
+				if taken==nil then spot.Material="Neon" end
+			end
+			--
+			--diagonals
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]+1<=8 then
+				if black[pc.Name]["Column"]+1<=8 then
+					local spot=board[tostring(black[pc.Name]["Row"]+1)][tostring(black[pc.Name]["Column"]+1)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--left down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]-1>0 then
+				if black[pc.Name]["Column"]+1<=8 then
+					local spot=board[black[pc.Name]["Row"]-1][tostring(black[pc.Name]["Column"]+1)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]+1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--right up 
+			local taken=nil
+			if black[pc.Name]["Row"]+1<=8 and black[pc.Name]["Column"]-1>0 then
+				if black[pc.Name]["Column"]+1<=8 then
+					local spot=board[tostring(black[pc.Name]["Row"]+1)][tostring(black[pc.Name]["Column"]-1)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"]+1 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--right down
+			local taken=nil
+			if black[pc.Name]["Row"]-1>0 and black[pc.Name]["Column"]-1>0 then
+				if black[pc.Name]["Column"]+1<=8 then
+					local spot=board[black[pc.Name]["Row"]-1][tostring(black[pc.Name]["Column"]-1)]
+					for i,v in pairs(black) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+							taken=true
+						end
+					end
+					for i,v in pairs(white) do
+						if v["Row"]==black[pc.Name]["Row"]-1 and v["Column"]==black[pc.Name]["Column"]-1 and taken==nil then
+							spot.Material="Neon"
+							taken=true
+						end
+					end
+					if taken==nil then spot.Material="Neon" end
+				end
+			end
+			--
+		end
+	end
+	--End piece handling
+end
+
+if script.Parent:FindFirstChild("Donate") then
+	script.Parent["Donate"]["Cup"].ClickDetector.MouseClick:Connect(function(pl)
+		MarketplaceService:PromptProductPurchase(pl, 937144134)
+	end)
+end
+
+--Hover Handling
+--White
+w["Pawn1"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn1"].BillboardGui.Enabled=true end)
+w["Pawn1"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn1"].BillboardGui.Enabled=false end)
+w["Pawn2"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn2"].BillboardGui.Enabled=true end)
+w["Pawn2"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn2"].BillboardGui.Enabled=false end)
+w["Pawn3"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn3"].BillboardGui.Enabled=true end)
+w["Pawn3"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn3"].BillboardGui.Enabled=false end)
+w["Pawn4"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn4"].BillboardGui.Enabled=true end)
+w["Pawn4"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn4"].BillboardGui.Enabled=false end)
+w["Pawn5"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn5"].BillboardGui.Enabled=true end)
+w["Pawn5"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn5"].BillboardGui.Enabled=false end)
+w["Pawn6"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn6"].BillboardGui.Enabled=true end)
+w["Pawn6"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn6"].BillboardGui.Enabled=false end)
+w["Pawn7"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn7"].BillboardGui.Enabled=true end)
+w["Pawn7"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn7"].BillboardGui.Enabled=false end)
+w["Pawn8"].ClickDetector.MouseHoverEnter:Connect(function()	w["Pawn8"].BillboardGui.Enabled=true end)
+w["Pawn8"].ClickDetector.MouseHoverLeave:Connect(function()	w["Pawn8"].BillboardGui.Enabled=false end)
+w["Rook1"].ClickDetector.MouseHoverEnter:Connect(function()	w["Rook1"].BillboardGui.Enabled=true end)
+w["Rook1"].ClickDetector.MouseHoverLeave:Connect(function()	w["Rook1"].BillboardGui.Enabled=false end)
+w["Rook2"].ClickDetector.MouseHoverEnter:Connect(function()	w["Rook2"].BillboardGui.Enabled=true end)
+w["Rook2"].ClickDetector.MouseHoverLeave:Connect(function()	w["Rook2"].BillboardGui.Enabled=false end)
+w["Bishop1"].ClickDetector.MouseHoverEnter:Connect(function() w["Bishop1"].BillboardGui.Enabled=true end)
+w["Bishop1"].ClickDetector.MouseHoverLeave:Connect(function() w["Bishop1"].BillboardGui.Enabled=false end)
+w["Bishop2"].ClickDetector.MouseHoverEnter:Connect(function() w["Bishop2"].BillboardGui.Enabled=true end)
+w["Bishop2"].ClickDetector.MouseHoverLeave:Connect(function() w["Bishop2"].BillboardGui.Enabled=false end)
+w["Knight1"].ClickDetector.MouseHoverEnter:Connect(function() w["Knight1"].BillboardGui.Enabled=true end)
+w["Knight1"].ClickDetector.MouseHoverLeave:Connect(function() w["Knight1"].BillboardGui.Enabled=false end)
+w["Knight2"].ClickDetector.MouseHoverEnter:Connect(function() w["Knight2"].BillboardGui.Enabled=true end)
+w["Knight2"].ClickDetector.MouseHoverLeave:Connect(function() w["Knight2"].BillboardGui.Enabled=false end)
+w["Queen"].ClickDetector.MouseHoverEnter:Connect(function() w["Queen"].BillboardGui.Enabled=true end)
+w["Queen"].ClickDetector.MouseHoverLeave:Connect(function() w["Queen"].BillboardGui.Enabled=false end)
+w["King"].ClickDetector.MouseHoverEnter:Connect(function() w["King"].BillboardGui.Enabled=true end)
+w["King"].ClickDetector.MouseHoverLeave:Connect(function() w["King"].BillboardGui.Enabled=false end)
+
+--Black
+b["Pawn1"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn1"].BillboardGui.Enabled=true end)
+b["Pawn1"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn1"].BillboardGui.Enabled=false end)
+b["Pawn2"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn2"].BillboardGui.Enabled=true end)
+b["Pawn2"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn2"].BillboardGui.Enabled=false end)
+b["Pawn3"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn3"].BillboardGui.Enabled=true end)
+b["Pawn3"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn3"].BillboardGui.Enabled=false end)
+b["Pawn4"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn4"].BillboardGui.Enabled=true end)
+b["Pawn4"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn4"].BillboardGui.Enabled=false end)
+b["Pawn5"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn5"].BillboardGui.Enabled=true end)
+b["Pawn5"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn5"].BillboardGui.Enabled=false end)
+b["Pawn6"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn6"].BillboardGui.Enabled=true end)
+b["Pawn6"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn6"].BillboardGui.Enabled=false end)
+b["Pawn7"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn7"].BillboardGui.Enabled=true end)
+b["Pawn7"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn7"].BillboardGui.Enabled=false end)
+b["Pawn8"].ClickDetector.MouseHoverEnter:Connect(function()	b["Pawn8"].BillboardGui.Enabled=true end)
+b["Pawn8"].ClickDetector.MouseHoverLeave:Connect(function()	b["Pawn8"].BillboardGui.Enabled=false end)
+b["Rook1"].ClickDetector.MouseHoverEnter:Connect(function()	b["Rook1"].BillboardGui.Enabled=true end)
+b["Rook1"].ClickDetector.MouseHoverLeave:Connect(function()	b["Rook1"].BillboardGui.Enabled=false end)
+b["Rook2"].ClickDetector.MouseHoverEnter:Connect(function()	b["Rook2"].BillboardGui.Enabled=true end)
+b["Rook2"].ClickDetector.MouseHoverLeave:Connect(function()	b["Rook2"].BillboardGui.Enabled=false end)
+b["Bishop1"].ClickDetector.MouseHoverEnter:Connect(function() b["Bishop1"].BillboardGui.Enabled=true end)
+b["Bishop1"].ClickDetector.MouseHoverLeave:Connect(function() b["Bishop1"].BillboardGui.Enabled=false end)
+b["Bishop2"].ClickDetector.MouseHoverEnter:Connect(function() b["Bishop2"].BillboardGui.Enabled=true end)
+b["Bishop2"].ClickDetector.MouseHoverLeave:Connect(function() b["Bishop2"].BillboardGui.Enabled=false end)
+b["Knight1"].ClickDetector.MouseHoverEnter:Connect(function() b["Knight1"].BillboardGui.Enabled=true end)
+b["Knight1"].ClickDetector.MouseHoverLeave:Connect(function() b["Knight1"].BillboardGui.Enabled=false end)
+b["Knight2"].ClickDetector.MouseHoverEnter:Connect(function() b["Knight2"].BillboardGui.Enabled=true end)
+b["Knight2"].ClickDetector.MouseHoverLeave:Connect(function() b["Knight2"].BillboardGui.Enabled=false end)
+b["Queen"].ClickDetector.MouseHoverEnter:Connect(function() b["Queen"].BillboardGui.Enabled=true end)
+b["Queen"].ClickDetector.MouseHoverLeave:Connect(function() b["Queen"].BillboardGui.Enabled=false end)
+b["King"].ClickDetector.MouseHoverEnter:Connect(function() b["King"].BillboardGui.Enabled=true end)
+b["King"].ClickDetector.MouseHoverLeave:Connect(function() b["King"].BillboardGui.Enabled=false end)
+
+
+
+--OnClicks
+--White
+w["Pawn1"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn1"], pl) end)
+w["Pawn2"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn2"], pl) end)
+w["Pawn3"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn3"], pl) end)
+w["Pawn4"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn4"], pl) end)
+w["Pawn5"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn5"], pl) end)
+w["Pawn6"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn6"], pl) end)
+w["Pawn7"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn7"], pl) end)
+w["Pawn8"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Pawn8"], pl) end)
+w["Rook1"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Rook1"], pl) end)
+w["Bishop1"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Bishop1"], pl) end)
+w["Knight1"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Knight1"], pl) end)
+w["Queen"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Queen"], pl) end)
+w["King"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["King"], pl) end)
+w["Rook2"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Rook2"], pl) end)
+w["Bishop2"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Bishop2"], pl) end)
+w["Knight2"].ClickDetector.MouseClick:Connect(function(pl) interaction(w["Knight2"], pl) end)
+
+--Black
+b["Pawn1"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn1"], pl) end)
+b["Pawn2"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn2"], pl) end)
+b["Pawn3"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn3"], pl) end)
+b["Pawn4"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn4"], pl) end)
+b["Pawn5"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn5"], pl) end)
+b["Pawn6"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn6"], pl) end)
+b["Pawn7"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn7"], pl) end)
+b["Pawn8"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Pawn8"], pl) end)
+b["Rook1"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Rook1"], pl) end)
+b["Bishop1"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Bishop1"], pl) end)
+b["Knight1"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Knight1"], pl) end)
+b["Queen"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Queen"], pl) end)
+b["King"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["King"], pl) end)
+b["Rook2"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Rook2"], pl) end)
+b["Bishop2"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Bishop2"], pl) end)
+b["Knight2"].ClickDetector.MouseClick:Connect(function(pl) interaction(b["Knight2"], pl) end)
+
+--Board
+board["1"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["1"], pl) end)
+board["1"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["2"], pl) end)
+board["1"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["3"], pl) end)
+board["1"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["4"], pl) end)
+board["1"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["5"], pl) end)
+board["1"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["6"], pl) end)
+board["1"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["7"], pl) end)
+board["1"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["1"]["8"], pl) end)
+board["2"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["1"], pl) end)
+board["2"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["2"], pl) end)
+board["2"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["3"], pl) end)
+board["2"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["4"], pl) end)
+board["2"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["5"], pl) end)
+board["2"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["6"], pl) end)
+board["2"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["7"], pl) end)
+board["2"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["2"]["8"], pl) end)
+board["3"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["1"], pl) end)
+board["3"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["2"], pl) end)
+board["3"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["3"], pl) end)
+board["3"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["4"], pl) end)
+board["3"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["5"], pl) end)
+board["3"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["6"], pl) end)
+board["3"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["7"], pl) end)
+board["3"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["3"]["8"], pl) end)
+board["4"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["1"], pl) end)
+board["4"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["2"], pl) end)
+board["4"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["3"], pl) end)
+board["4"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["4"], pl) end)
+board["4"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["5"], pl) end)
+board["4"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["6"], pl) end)
+board["4"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["7"], pl) end)
+board["4"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["4"]["8"], pl) end)
+board["5"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["1"], pl) end)
+board["5"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["2"], pl) end)
+board["5"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["3"], pl) end)
+board["5"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["4"], pl) end)
+board["5"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["5"], pl) end)
+board["5"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["6"], pl) end)
+board["5"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["7"], pl) end)
+board["5"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["5"]["8"], pl) end)
+board["6"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["1"], pl) end)
+board["6"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["2"], pl) end)
+board["6"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["3"], pl) end)
+board["6"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["4"], pl) end)
+board["6"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["5"], pl) end)
+board["6"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["6"], pl) end)
+board["6"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["7"], pl) end)
+board["6"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["6"]["8"], pl) end)
+board["7"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["1"], pl) end)
+board["7"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["2"], pl) end)
+board["7"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["3"], pl) end)
+board["7"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["4"], pl) end)
+board["7"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["5"], pl) end)
+board["7"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["6"], pl) end)
+board["7"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["7"], pl) end)
+board["7"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["7"]["8"], pl) end)
+board["8"]["1"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["1"], pl) end)
+board["8"]["2"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["2"], pl) end)
+board["8"]["3"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["3"], pl) end)
+board["8"]["4"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["4"], pl) end)
+board["8"]["5"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["5"], pl) end)
+board["8"]["6"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["6"], pl) end)
+board["8"]["7"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["7"], pl) end)
+board["8"]["8"].ClickDetector.MouseClick:Connect(function(pl) interaction(board["8"]["8"], pl) end)
