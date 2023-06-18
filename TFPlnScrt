@@ -1,0 +1,1505 @@
+repeat wait() until game.Players.LocalPlayer --This line makes the tool wait until it is in the Player's backpack
+wait(0.1)
+------------------------------------------------------------------
+local Player = game.Players.LocalPlayer
+local Character = Player.Character
+local Plane = Character.Plane
+local AutoCrash = Plane.AutoCrash
+local Crashed = Plane.Crashed
+local Weapons = Plane.Weapons
+local MainParts = Plane.MainParts
+local Gear = MainParts.Gear
+local Engine = MainParts.Engine
+local Thrust = Engine.Thrust
+local Direction = Engine.Direction
+local Customize = Plane.Customize
+local Tool = script.Parent
+local GUI = Tool.PlaneGui
+local ToolSelect = Tool.ToolSelect
+local Deselect0 = Tool.Deselect0
+local FireMain = Tool.FireMain
+local Camera = game.Workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+------------------------------------------------------------------
+local Acceleration = Customize.Acceleration
+local MaxSpeed = Customize.MaxSpeed
+local StallSpeed = Customize.StallSpeed
+local TurnSpeed = Customize.TurnSpeed
+local ThrottleInc = Customize.ThrottleInc
+local MaxBank = Customize.MaxBank
+local CameraType = Customize.CameraType
+local CamLock = Customize.CamLock
+local Ejectable = Customize.Ejectable
+local PlaneName = Customize.PlaneName
+local Targetable = Customize.Targetable
+local FlightControls = Customize.FlightControls
+local WeaponControls = Customize.WeaponControls
+local TargetControls = Customize.TargetControls
+local WeaponsValue = Customize.Weapons
+local ReloadTimes = Customize.ReloadTimes
+local SimulationMode = Customize.SimulationMode
+local AltRestrict = Customize.AltitudeRestrict
+local MaxAltitude = AltRestrict.MaxAltitude
+local MinAltitude = AltRestrict.MinAltitude
+------------------------------------------------------------------
+local GUIA1Visible = true
+local GUIB1Visible = true
+local GUIA2Visible = true
+local GUIB2Visible = true
+------------------------------------------------------------------
+local BombM = FireMain.BombM
+local MissileM = FireMain.MissileM
+------------------------------------------------------------------
+local RocketEnabled = true
+local FlareEnabled = true
+local BombEnabled = true
+local MissileEnabled = true
+------------------------------------------------------------------
+local SUAK = false
+local SDAK = false
+------------------------------------------------------------------
+local EngineOn = false
+local Selected = false
+local LockedCam = true
+local LowestPoint = 0
+local DesiredSpeed = 0
+local CurrentSpeed = 0
+local TrueAirSpeed = 0
+local Throttle = 0
+local HugeVector = Vector3.new(math.huge,math.huge,math.huge)
+------------------------------------------------------------------
+local FTab = {}
+local IgnoreTable = {}
+------------------------------------------------------------------
+local LockGUI = nil
+local AimGUI = nil
+local TargetPlayer = nil
+local Locked = false
+local Targeting = false
+------------------------------------------------------------------
+local AimingIcon = "http://www.roblox.com/asset/?id=107455536"
+local LockedIcon = "http://www.roblox.com/asset/?id=107455986"
+local TargetIcon = "http://www.roblox.com/asset/?id=107455960"
+local NormalIcon = "http://www.roblox.com/asset/?id=116176885"
+------------------------------------------------------------------
+local LandingGear = {}
+local GearUp = false --End of the variables
+------------------------------------------------------------------
+function FixVars() --This function fixes any errors in the Customize folder
+	Acceleration2 = (Acceleration.Value < 0 and 0 or Acceleration.Value > 1e3 and 1e3 or Acceleration.Value)
+	MaxBank2 = (MaxBank.Value < -90 and -90 or MaxBank.Value > 90 and 90 or MaxBank.Value)
+	MaxSpeed2 = (MaxSpeed.Value < 0 and 0 or MaxSpeed.Value < StallSpeed.Value and StallSpeed.Value or MaxSpeed.Value)
+	StallSpeed2 = (StallSpeed.Value < 0 and 0 or StallSpeed.Value > MaxSpeed.Value and MaxSpeed.Value or StallSpeed.Value)
+	TurnSpeed2 = (TurnSpeed.Value < 0 and 0 or TurnSpeed.Value)
+	ThrottleInc2 = (ThrottleInc.Value < 0 and 0 or ThrottleInc.Value)
+	MaxAltitude2 = (MaxAltitude.Value < MinAltitude.Value and MinAltitude.Value or MaxAltitude.Value)
+	MinAltitude2 = (MinAltitude.Value > MaxAltitude.Value and MaxAltitude.Value or MinAltitude.Value)
+	MissileTime2 = (ReloadTimes.Missiles.Value < 0 and 0 or ReloadTimes.Missiles.Value)
+	RocketTime2 = (ReloadTimes.Rockets.Value < 0 and 0 or ReloadTimes.Rockets.Value)
+	GunTime2 = (ReloadTimes.Guns.Value < 0 and 0 or ReloadTimes.Guns.Value)
+	FlareTime2 = (ReloadTimes.Flares.Value < 0 and 0 or ReloadTimes.Flares.Value)
+	BombTime2 = (ReloadTimes.Bombs.Value < 0 and 0 or ReloadTimes.Bombs.Value)
+	CameraType2 = (pcall(function() Camera.CameraType = CameraType.Value end) and CameraType.Value or "Custom")
+	PlaneName2 = (PlaneName.Value == "" and "Plane" or PlaneName.Value)
+	if WeaponsValue.Value then
+		if WeaponsValue.Missiles.Value or WeaponsValue.Bombs.Value then
+			Targetable2 = true
+		elseif (not (WeaponsValue.Missiles.Value and WeaponsValue.Bombs.Value)) then
+			Targetable2 = false
+		end
+	elseif (not WeaponsValue.Value) then
+		Targetable2 = false
+	end
+	if FlightControls.SpeedUp.Value == "ArrowKeyUp" then
+		SpeedUp2 = 17
+		SUAK = true
+	elseif FlightControls.SpeedUp.Value == "ArrowKeyDown" then
+		SpeedUp2 = 18
+		SUAK = true
+	else
+		SpeedUp2 = FlightControls.SpeedUp.Value
+		SUAK = false
+	end
+	if FlightControls.SlowDown.Value == "ArrowKeyUp" then
+		SlowDown2 = 17
+		SDAK = true
+	elseif FlightControls.SlowDown.Value == "ArrowKeyDown" then
+		SlowDown2 = 18
+		SDAK = true
+	else
+		SlowDown2 = FlightControls.SlowDown.Value
+		SDAK = false
+	end
+	Engine.Direction.P = (SimulationMode.Value and 1e4 or TurnSpeed2)
+end
+
+function FireMachineGun(GunParent) --This function creates the bullets for the MachineGuns
+	while FiringGun do
+		for _,v in pairs(GunParent:GetChildren()) do --This is what allow you to put as many MachineGuns as you want in the Guns folder
+			if v:IsA("BasePart") then
+				if v.Name == "MachineGun" then
+					local Part = Instance.new("Part")
+					Part.BrickColor = BrickColor.new("Bright yellow")
+					Part.Name = "Bullet"
+					Part.CanCollide = false
+					Part.FormFactor = "Symmetric"
+					Part.Size = Vector3.new(5,5,3)
+					Part.BottomSurface = "Smooth"
+					Part.TopSurface = "Smooth"
+					local Mesh = Instance.new("BlockMesh")
+					Mesh.Parent = Part
+					Mesh.Scale = Vector3.new(1/12.5,1/12.5,1)
+					local BV = Instance.new("BodyVelocity")
+					BV.Parent = Part
+					BV.maxForce = HugeVector
+					local PlaneTag = Instance.new("ObjectValue")
+					PlaneTag.Parent = Part
+					PlaneTag.Name = "PlaneTag"
+					PlaneTag.Value = Plane
+					Part.Touched:connect(function(Object) --This lets me call the "Touched" function, which means I don't need an external script
+						if IsIgnored(Object) then return end
+						if (not Object:IsDescendantOf(Character)) then
+							local HitHumanoid = Object.Parent:findFirstChild("Humanoid")
+							if HitHumanoid then
+								HitHumanoid:TakeDamage(100) --This only damges the player if they don't have a forcefield
+								local CreatorTag = Instance.new("ObjectValue")
+								CreatorTag.Name = "creator"
+								CreatorTag.Value = Player
+								CreatorTag.Parent = HitHumanoid
+								delay(0.1,function() CreatorTag:Destroy() end)
+							elseif (not HitHumanoid) then
+								Object:BreakJoints()
+							end
+							CreateShockwave(Part.Position,5)
+						end
+					end)
+					Part.Parent = game.Workspace
+					Part.CFrame = v.CFrame + v.CFrame.lookVector * 10
+					BV.velocity = (v.Velocity) + (Part.CFrame.lookVector * 2e3) + (Vector3.new(0,0.15,0))
+					delay(2,function() Part:Destroy() end)
+					table.insert(IgnoreTable,Part)
+				end
+			end
+		end
+		wait(GunTime2)
+	end
+end
+
+function FireRockets(GunParent) --This function creates the rockets for the rocket spawns
+	for _,v in pairs(GunParent:GetChildren()) do --This allows you to put as many RocketSpawns as you want in the Rockets folder
+		if v:IsA("BasePart") then
+			if v.Name == "RocketSpawn" then
+				local Exploded = false
+				local Part1 = Instance.new("Part")
+				Part1.BrickColor = BrickColor.new("White")
+				Part1.Name = "Missile"
+				Part1.CanCollide = false
+				Part1.FormFactor = "Symmetric"
+				Part1.Size = Vector3.new(1,1,5)
+				Part1.BottomSurface = "Smooth"
+				Part1.TopSurface = "Smooth"
+				local Mesh = Instance.new("SpecialMesh")
+				Mesh.Parent = Part1
+				Mesh.MeshId = "http://www.roblox.com/asset/?id=2251534"
+				Mesh.MeshType = "FileMesh"
+				Mesh.Scale = Vector3.new(0.5,0.5,0.5)
+				local Part2 = Instance.new("Part")
+				Part2.Parent = Part1
+				Part2.Transparency = 1
+				Part2.Name = "Visual"
+				Part2.CanCollide = false
+				Part2.FormFactor = "Symmetric"
+				Part2.Size = Vector3.new(1,1,1)
+				Part2.BottomSurface = "Smooth"
+				Part2.TopSurface = "Smooth"
+				local Weld = Instance.new("Weld")
+				Weld.Parent = Part1
+				Weld.Part0 = Part1
+				Weld.Part1 = Part2
+				Weld.C0 = CFrame.new(0,0,4) * CFrame.Angles(math.rad(90),0,0)
+				local BV = Instance.new("BodyVelocity")
+				BV.Parent = Part1
+				BV.maxForce = HugeVector
+				local BG = Instance.new("BodyGyro")
+				BG.Parent = Part
+				BG.maxTorque = HugeVector
+				BG.cframe = v.CFrame
+				local Fire = Instance.new("Fire")
+				Fire.Parent = Part2
+				Fire.Heat = 25
+				Fire.Size = 10
+				local Smoke = Instance.new("Smoke")
+				Smoke.Parent = Part2
+				Smoke.Color = Color3.new(200/255,200/255,200/255)
+				Smoke.Opacity = 0.7
+				Smoke.RiseVelocity = 25
+				Smoke.Size = 10
+				local PlaneTag = Instance.new("ObjectValue")
+				PlaneTag.Parent = Part
+				PlaneTag.Name = "PlaneTag"
+				PlaneTag.Value = Plane
+				Part1.Touched:connect(function(Object)
+					if IsIgnored(Object) then return end
+					if (not Exploded) then
+						if (not Object:IsDescendantOf(Character)) then
+							if Object.Name ~= "Missile" then
+								Exploded = true
+								local Explosion = Instance.new("Explosion",game.Workspace)
+								Explosion.Position = Part1.Position
+								Explosion.BlastPressure = 5e3
+								Explosion.BlastRadius = 10
+								ScanPlayers(Part1.Position,10)
+								CreateShockwave(Part1.Position,10)
+								Explosion.Parent = game.Workspace
+								Part1:Destroy()
+							end
+						end
+					end
+				end)
+				Part1.Parent = game.Workspace
+				Part1.CFrame = v.CFrame + v.CFrame.lookVector * 10
+				BV.velocity = Part1.CFrame.lookVector * 1250 + Vector3.new(0,0.15,0)
+				delay(5,function() Part1:Destroy() end)
+				table.insert(IgnoreTable,Part1)
+			end
+		end
+	end
+end
+
+function DeployFlares(GunParent) --This function creates the flares for the flare spawns
+	for _,v in pairs(GunParent:GetChildren()) do
+		if v:IsA("BasePart") then
+			if v.Name == "FlareSpawn" then
+				local RandomFactor = 40
+				local RandomX = math.rad(math.random(-RandomFactor,RandomFactor))
+				local RandomY = math.rad(math.random(-RandomFactor,RandomFactor))
+				local Part = Instance.new("Part")
+				Part.Transparency = 1
+				Part.Name = "Flare"
+				Part.CanCollide = false
+				Part.FormFactor = "Symmetric"
+				Part.Size = Vector3.new(1,1,1)
+				Part.BottomSurface = "Smooth"
+				Part.TopSurface = "Smooth"
+				local BG = Instance.new("BillboardGui")
+				BG.Parent = Part
+				BG.Size = UDim2.new(10,0,10,0)
+				local IL = Instance.new("ImageLabel")
+				IL.Parent = BG
+				IL.BackgroundTransparency = 1
+				IL.Image = "http://www.roblox.com/asset/?id=43708803"
+				IL.Size = UDim2.new(1,0,1,0)
+				local Smoke = Instance.new("Smoke")
+				Smoke.Parent = Part
+				Smoke.Opacity = 0.5
+				Smoke.RiseVelocity = 25
+				Smoke.Size = 5
+				local PL = Instance.new("PointLight")
+				PL.Parent = Part
+				PL.Brightness = 10
+				PL.Color = Color3.new(1,1,0)
+				PL.Range = 20
+				Part.Parent = game.Workspace
+				Part.CFrame = (v.CFrame + v.CFrame.lookVector * 5) * CFrame.Angles(RandomX,RandomY,0)
+				Part.Velocity = Part.CFrame.lookVector * 150
+				delay(5,function() Part:Destroy() end)
+				table.insert(IgnoreTable,Part)
+			end
+		end
+	end
+end
+
+function DropBomb(GunParent) --This function creates the non-guided bombs for the bomb spawns
+	if (not Locked) then
+		for _,v in pairs(GunParent:GetChildren()) do
+			if v:IsA("BasePart") then
+				if v.Name == "BombSpawn" then
+					local Exploded = false
+					local Part = Instance.new("Part")
+					Part.Name = "Bomb"
+					Part.CanCollide = false
+					Part.FormFactor = "Symmetric"
+					Part.Size = Vector3.new(2,2,9)
+					Part.BottomSurface = "Smooth"
+					Part.TopSurface = "Smooth"
+					local Mesh = Instance.new("SpecialMesh")
+					Mesh.Parent = Part
+					Mesh.MeshId = "http://www.roblox.com/asset/?id=88782666"
+					Mesh.MeshType = "FileMesh"
+					Mesh.Scale = Vector3.new(4,4,4)
+					Mesh.TextureId = "http://www.roblox.com/asset/?id=88782631"
+					local BG = Instance.new("BodyGyro")
+					BG.Parent = Part
+					BG.maxTorque = HugeVector
+					BG.cframe = v.CFrame * CFrame.Angles(math.rad(90),0,0)
+					local PlaneTag = Instance.new("ObjectValue")
+					PlaneTag.Parent = Part
+					PlaneTag.Name = "PlaneTag"
+					PlaneTag.Value = Plane
+					Part.Touched:connect(function(Object)
+						if IsIgnored(Object) then return end
+						if (not Exploded) then
+							if (not Object:IsDescendantOf(Character)) and Object.Name ~= "Bomb" then
+								Exploded = true
+								local Explosion = Instance.new("Explosion")
+								Explosion.Position = Part.Position
+								Explosion.BlastPressure = 5e5
+								Explosion.BlastRadius = 100
+								ScanPlayers(Part.Position,100)
+								CreateShockwave(Part.Position,75)
+								Explosion.Parent = game.Workspace
+								Part:Destroy()
+							end
+						end
+					end)
+					Part.Parent = game.Workspace
+					Part.CFrame = (v.CFrame * CFrame.Angles(math.rad(90),0,0)) + v.CFrame.lookVector * 3
+					Part.Velocity = (Part.CFrame.lookVector * (TrueAirSpeed * 0.75))
+					delay(7,function() Part:Destroy() end)
+					table.insert(IgnoreTable,Part)
+				end
+			end
+		end
+	end
+end
+
+function DropGuidedBomb(Gun) --This function creates guided bombs for the bombs spawns
+	if Locked then
+		local Exploded = false
+		local Part = Instance.new("Part")
+		Part.Name = "Bomb"
+		Part.CanCollide = false
+		Part.FormFactor = "Symmetric"
+		Part.Size = Vector3.new(2,2,9)
+		Part.BottomSurface = "Smooth"
+		Part.TopSurface = "Smooth"
+		local Mesh = Instance.new("SpecialMesh")
+		Mesh.Parent = Part
+		Mesh.MeshId = "http://www.roblox.com/asset/?id=88782666"
+		Mesh.MeshType = "FileMesh"
+		Mesh.Scale = Vector3.new(4,4,4)
+		Mesh.TextureId = "http://www.roblox.com/asset/?id=88782631"
+		local OV = Instance.new("ObjectValue")
+		OV.Parent = Part
+		OV.Name = "Target"
+		OV.Value = TargetPlayer.Character
+		local NV = Instance.new("NumberValue")
+		NV.Parent = Part
+		NV.Name = "PlaneSpd"
+		NV.Value = TrueAirSpeed * 0.9 --This makes the bombs travel speed 9/10 of the plane's speed
+		local BG = Instance.new("BodyGyro")
+		BG.Parent = Part
+		BG.maxTorque = HugeVector
+		BG.P = 2e3
+		local BV = Instance.new("BodyVelocity")
+		BV.Parent = Part
+		BV.maxForce = Vector3.new(math.huge,6e3,math.huge)
+		BV.velocity = Vector3.new(0,0,0)
+		local Script = BombM:clone()
+		Script.Parent = Part
+		local PlaneTag = Instance.new("ObjectValue")
+		PlaneTag.Parent = Part
+		PlaneTag.Name = "PlaneTag"
+		PlaneTag.Value = Plane
+		Part.Touched:connect(function(Object)
+			if IsIgnored(Object) then return end
+			if (not Exploded) then
+				if (not Object:IsDescendantOf(Character)) and Object.Name ~= "Bomb" then
+					Exploded = true
+					local Explosion = Instance.new("Explosion")
+					Explosion.Position = Part.Position
+					Explosion.BlastPressure = 5e5
+					Explosion.BlastRadius = 100
+					ScanPlayers(Part.Position,100)
+					CreateShockwave(Part.Position,75)
+					Explosion.Parent = game.Workspace
+					Part:Destroy()
+				end
+			end
+		end)
+		Part.Parent = game.Workspace
+		Part.CFrame = (Gun.CFrame * CFrame.Angles(math.rad(90),0,0)) + Gun.CFrame.lookVector * 10
+		Script.Disabled = false
+		table.insert(IgnoreTable,Part)
+	end
+end
+
+function FireMissile(Gun) --This function creates the non-guided missiles for the missile spawns
+	if (not Locked) then
+		local Exploded = false
+		local Part1 = Instance.new("Part")
+		Part1.Name = "Missile"
+		Part1.CanCollide = false
+		Part1.FormFactor = "Symmetric"
+		Part1.Size = Vector3.new(1,1,13)
+		Part1.BottomSurface = "Smooth"
+		Part1.TopSurface = "Smooth"
+		local Mesh = Instance.new("SpecialMesh")
+		Mesh.Parent = Part1
+		Mesh.MeshId = "http://www.roblox.com/asset/?id=2251534"
+		Mesh.MeshType = "FileMesh"
+		Mesh.TextureId = "http://www.roblox.com/asset/?id=2564491"
+		local Part2 = Instance.new("Part")
+		Part2.Parent = Part1
+		Part2.Name = "Visual"
+		Part2.Transparency = 1
+		Part2.CanCollide = false
+		Part2.FormFactor = "Symmetric"
+		Part2.Size = Vector3.new(1,1,1)
+		Part2.BottomSurface = "Smooth"
+		Part2.TopSurface = "Smooth"
+		local Weld = Instance.new("Weld")
+		Weld.Parent = Part1
+		Weld.Part0 = Part1
+		Weld.Part1 = Part2
+		Weld.C0 = CFrame.new(0,0,5) * CFrame.Angles(math.rad(90),0,0)
+		local BV = Instance.new("BodyVelocity")
+		BV.Parent = Part1
+		BV.maxForce = HugeVector
+		local BG = Instance.new("BodyGyro")
+		BG.Parent = Part
+		BG.maxTorque = HugeVector
+		BG.cframe = Gun.CFrame * CFrame.Angles(math.rad(90),0,0)
+		local Fire = Instance.new("Fire")
+		Fire.Parent = Part2
+		Fire.Enabled = false
+		Fire.Heat = 25
+		Fire.Size = 30
+		local Smoke = Instance.new("Smoke")
+		Smoke.Parent = Part2
+		Smoke.Color = Color3.new(40/51,40/51,40/51)
+		Smoke.Enabled = false
+		Smoke.Opacity = 1
+		Smoke.RiseVelocity = 25
+		Smoke.Size = 25
+		local PlaneTag = Instance.new("ObjectValue")
+		PlaneTag.Parent = Part
+		PlaneTag.Name = "PlaneTag"
+		PlaneTag.Value = Plane
+		Part1.Touched:connect(function(Object)
+			if IsIgnored(Object) then return end
+			if (not Exploded) then
+				if (not Object:IsDescendantOf(Character)) and Object.Name ~= "Missile" then
+					Exploded = true
+					local Explosion = Instance.new("Explosion")
+					Explosion.Position = Part1.Position
+					Explosion.BlastPressure = 5e4
+					Explosion.BlastRadius = 50
+					ScanPlayers(Part1.Position,50)
+					CreateShockwave(Part1.Position,50)
+					Explosion.Parent = game.Workspace
+					Part1:Destroy()
+				end
+			end
+		end)
+		Part1.Parent = game.Workspace
+		Part1.CFrame = (Gun.CFrame * CFrame.Angles(math.rad(90),0,0)) + Gun.CFrame.lookVector * 15
+		BV.velocity = Part1.CFrame.lookVector * Engine.Velocity.magnitude
+		delay(0.4,function()
+			BV.velocity = (Part1.CFrame.lookVector * 1500) + Vector3.new(0,0.15,0)
+			Fire.Enabled = true
+			Smoke.Enabled = true
+		end)
+		delay(5,function() Part1:Destroy() end)
+		table.insert(IgnoreTable,Part1)
+	end
+end
+
+function FireGuidedMissile(Gun) --This function creates the guided missiles for the missile spawns
+	if Targetable2 then
+		if Locked then
+			local Exploded = false
+			local Part1 = Instance.new("Part")
+			Part1.Name = "Missile"
+			Part1.CanCollide = false
+			Part1.FormFactor = "Symmetric"
+			Part1.Size = Vector3.new(1,1,13)
+			Part1.BottomSurface = "Smooth"
+			Part1.TopSurface = "Smooth"
+			local Mesh = Instance.new("SpecialMesh")
+			Mesh.Parent = Part1
+			Mesh.MeshId = "http://www.roblox.com/asset/?id=2251534"
+			Mesh.MeshType = "FileMesh"
+			Mesh.TextureId = "http://www.roblox.com/asset/?id=2564491"
+			local Part2 = Instance.new("Part")
+			Part2.Parent = Part1
+			Part2.Transparency = 1
+			Part2.Name = "Visual"
+			Part2.CanCollide = false
+			Part2.FormFactor = "Symmetric"
+			Part2.Size = Vector3.new(1,1,1)
+			Part2.BottomSurface = "Smooth"
+			Part2.TopSurface = "Smooth"
+			local Weld = Instance.new("Weld")
+			Weld.Parent = Part1
+			Weld.Part0 = Part1
+			Weld.Part1 = Part2
+			Weld.C0 = CFrame.new(0,0,5) * CFrame.Angles(math.rad(90),0,0)
+			local OV = Instance.new("ObjectValue")
+			OV.Parent = Part1
+			OV.Name = "Target"
+			OV.Value = TargetPlayer.Character
+			local BV = Instance.new("BodyVelocity")
+			BV.Parent = Part1
+			BV.maxForce = HugeVector
+			--[[local BG = Instance.new("BodyGyro")
+			BG.Parent = Part1
+			BG.maxTorque = HugeVector
+			BG.P = 1e6]]
+			local Script = MissileM:clone()
+			Script.Parent = Part1
+			local Fire = Instance.new("Fire")
+			Fire.Parent = Part2
+			Fire.Enabled = false
+			Fire.Heat = 25
+			Fire.Size = 30
+			local Smoke = Instance.new("Smoke")
+			Smoke.Parent = Part2
+			Smoke.Color = Color3.new(40/51,40/51,40/51)
+			Smoke.Enabled = false
+			Smoke.Opacity = 1
+			Smoke.RiseVelocity = 25
+			Smoke.Size = 25
+			local PlaneTag = Instance.new("ObjectValue")
+			PlaneTag.Parent = Part
+			PlaneTag.Name = "PlaneTag"
+			PlaneTag.Value = Plane
+			Part1.Touched:connect(function(Object)
+				if IsIgnored(Object) then return end
+				if (not Exploded) then
+					if (not Object:IsDescendantOf(Character)) and Object.Name ~= "Missile" then
+						Exploded = true
+						local Explosion = Instance.new("Explosion")
+						Explosion.Position = Part1.Position
+						Explosion.BlastPressure = 5e4
+						Explosion.BlastRadius = 50
+						ScanPlayers(Part1.Position,50)
+						CreateShockwave(Part1.Position,50)
+						Explosion.Parent = game.Workspace
+						Part1:Destroy()
+					end
+				end
+			end)
+			Part1.Parent = game.Workspace
+			Part1.CFrame = (Gun.CFrame * CFrame.Angles(math.rad(90),0,0)) + Gun.CFrame.lookVector * 15
+			--BG.cframe = CFrame.new(Part1.CFrame.p,Part1.CFrame.p + Part1.CFrame.lookVector)
+			delay(0.4,function()
+				Script.Disabled = false
+				Fire.Enabled = true
+				Smoke.Enabled = true
+			end)
+			delay(7,function() Part1:Destroy() end)
+			table.insert(IgnoreTable,Part1)
+		end
+	end
+end
+
+function IsIgnored(Obj)
+	for _,v in pairs(IgnoreTable) do
+		if v == Obj then
+			return true
+		end
+	end
+	return false
+end
+
+function CreateShockwave(Center,Radius)
+	coroutine.resume(coroutine.create(function()
+		local Shockwave = Instance.new("Part")
+		Shockwave.BrickColor = BrickColor.new("Light stone grey")
+		Shockwave.Material = Enum.Material.SmoothPlastic
+		Shockwave.Name = "Shockwave"
+		Shockwave.Anchored = true
+		Shockwave.CanCollide = false
+		Shockwave.FormFactor = Enum.FormFactor.Symmetric
+		Shockwave.Size = Vector3.new(1,1,1)
+		Shockwave.BottomSurface = Enum.SurfaceType.Smooth
+		Shockwave.TopSurface = Enum.SurfaceType.Smooth
+		local Mesh = Instance.new("SpecialMesh",Shockwave)
+		Mesh.MeshType = Enum.MeshType.Sphere
+		Mesh.Scale = Vector3.new(0,0,0)
+		Shockwave.Parent = game.Workspace
+		Shockwave.CFrame = CFrame.new(Center)
+		table.insert(IgnoreTable,Shockwave)
+		for i = 0,1,1/12 do
+			local WaveScale = 2 * Radius * i
+			Mesh.Scale = Vector3.new(WaveScale,WaveScale,WaveScale)
+			Shockwave.Transparency = i
+			RunService.RenderStepped:wait()
+		end
+		Shockwave:Destroy()
+	end))
+end
+
+function ScanPlayers(Pos,Radius) --This is a function that I created that efficiently puts a CreatorTag in the player
+	coroutine.resume(coroutine.create(function()
+		for _,v in pairs(game.Players:GetPlayers()) do --This gets all the players
+			if v.Character and v.Character:findFirstChild("Torso") then
+				local PTorso = v.Character.Torso
+				if ((PTorso.Position - Pos).magnitude + 2) <= Radius then --If the distance between the explosion and the player is less than the radius...
+					local HitHumanoid = v.Character:findFirstChild("Humanoid")
+					if HitHumanoid then
+						local CreatorTag = Instance.new("ObjectValue")
+						CreatorTag.Name = "creator"
+						CreatorTag.Value = Player
+						CreatorTag.Parent = HitHumanoid
+						delay(0.1,function() CreatorTag:Destroy() end)
+					end
+				end
+			end
+		end
+	end))
+end
+
+function ReloadRocket(Time) --This function reloads the rockets based on the rocket reload time
+	if (not RocketEnabled) then
+		wait(Time)
+		RocketEnabled = true
+	end
+end
+
+function ReloadFlare(Time) --This function reloads the flares based on the flare reload time
+	if (not FlareEnabled) then
+		wait(Time)
+		FlareEnabled = true
+	end
+end
+
+function ReloadBomb(Time) --This function reloads the bombs based on the bomb reload time
+	if (not BombEnabled) then
+		wait(Time)
+		BombEnabled = true
+	end
+end
+
+function ReloadMissile(Time) --This function reloads the missile based on the missile reload time
+	if (not MissileEnabled) then
+		wait(Time)
+		MissileEnabled = true
+	end
+end
+
+function onMouseMoved(M) --This function is activated when the mouse moves
+	if Targetable2 then --If the plane can target...
+		local GUI = GUIClone.Main
+		if Targeting then
+			GUI.Mode.Text = "Targeting Mode"
+			local FoundPlayer = false
+			local ClosestRatio = 0.1
+			for _,v in pairs(game.Players:GetPlayers()) do
+				if v.Character then
+					if v.Character:findFirstChild("Torso") then
+						if v ~= Player then
+							if ((v.TeamColor ~= Player.TeamColor) or v.Neutral) then
+								local myHead = Character.Head
+								local TorsoPos = v.Character.Torso.CFrame
+								local Distance = (myHead.CFrame.p - TorsoPos.p).magnitude
+								local MDirection = (M.Hit.p - myHead.CFrame.p).unit
+								local Offset = (((MDirection * Distance) + myHead.CFrame.p) - TorsoPos.p).magnitude
+								if (not Locked) then
+									if (Offset / Distance) < ClosestRatio then
+										ClosestRatio = (Offset / Distance)
+										FoundPlayer = true
+										if TargetPlayer ~= v then
+											TargetPlayer = v
+											M.Icon = TargetIcon
+											AimGUI.Enabled = true
+											LockGUI.Enabled = false
+											AimGUI.Adornee = TargetPlayer.Character.Torso
+											LockGUI.Adornee = nil
+										end
+									end
+									if (not FoundPlayer) and TargetPlayer then
+										TargetPlayer = nil
+										M.Icon = AimingIcon
+										AimGUI.Enabled = false
+										LockGUI.Enabled = false
+										AimGUI.Adornee = nil
+										LockGUI.Adornee = nil
+									end
+								elseif Locked then
+									M.Icon = LockedIcon
+									AimGUI.Enabled = false
+									LockGUI.Enabled = true
+									AimGUI.Adornee = nil
+									LockGUI.Adornee = TargetPlayer.Character.Torso
+								end
+							end
+						end
+					end
+				end
+			end
+		elseif (not Targeting) then
+			GUI.Mode.Text = "Flying Mode"
+		end
+	end
+end
+
+function onButton1Down(M) --This function is activated when you press the left mouse button
+	if (not Targetable2) then return end
+	if (not Targeting) then return end
+	if (not EngineOn) then return end
+	if (not TargetPlayer) then return end
+	if (not Locked) then
+		M.Icon = LockedIcon
+		Locked = true
+		AimGUI.Enabled = false
+		LockGUI.Enabled = true
+		AimGUI.Adornee = nil
+		LockGUI.Adornee = TargetPlayer.Character.Torso
+		local Connection = nil
+		Connection = TargetPlayer.Character.Humanoid.Died:connect(function()
+			Locked = false
+			TargetPlayer = nil
+			M.Icon = AimingIcon
+			AimGUI.Enabled = false
+			LockGUI.Enabled = false
+			AimGUI.Adornee = nil
+			LockGUI.Adornee = nil
+			Connection:disconnect()
+		end)
+		Spawn(function()
+			local CurrentTargetPlayer = TargetPlayer
+			while true do
+				if CurrentTargetPlayer ~= TargetPlayer then
+					Connection:disconnect()
+					break
+				end
+				wait()
+			end
+		end)
+	end
+end
+
+function IncreaseSpd() --This function increases the speed
+	if EngineOn then
+		if Selected then
+			while Accelerating do
+				Throttle = (Throttle < 1 and Throttle + 0.01 or 1)
+				DesiredSpeed = MaxSpeed2 * Throttle
+				wait(ThrottleInc2)
+			end
+		end
+	end
+end
+
+function DecreaseSpd() --This function decreases the speed
+	if EngineOn then
+		if Selected then
+			while Decelerating do
+				Throttle = (Throttle > 0 and Throttle - 0.01 or 0)
+				DesiredSpeed = MaxSpeed2 * Throttle
+				wait(ThrottleInc2)
+			end
+		end
+	end
+end
+
+function RoundNumber(Num) --This function rounds a number to the nearest whole number
+	return ((Num - math.floor(Num)) >= 0.5 and math.ceil(Num) or math.floor(Num))
+end
+
+function GetGear(Parent) --This function gets all the parts in the Gear folder
+	for _,v in pairs(Parent:GetChildren()) do
+		if (v:IsA("BasePart")) then
+			if (not v:findFirstChild("GearProp")) then
+				local GearProp = Instance.new("StringValue")
+				GearProp.Name = "GearProp"
+				GearProp.Value = v.Transparency..","..tostring(v.CanCollide)
+				GearProp.Parent = v
+			end
+			table.insert(LandingGear,v) --This inserts a table with the gear's properties into the LandingGear table
+		end
+		GetGear(v)
+	end
+end
+
+function ChangeGear() --This function extends or retracts the gear
+	for _,v in pairs(LandingGear) do
+		local GearProp = v.GearProp
+		local Comma = GearProp.Value:find(",",1,true)
+		local TransVal = tonumber(GearProp.Value:sub(1,Comma - 1))
+		local CollideVal = GearProp.Value:sub(Comma + 1)
+		v.Transparency = (TransVal ~= 1 and (GearUp and TransVal or 1))
+		v.CanCollide = (CollideVal and (GearUp and CollideVal or false))
+	end
+end
+
+function SetUpGUI() --This function sets up the PlaneGUI
+	local GUI = GUIClone.Main
+	GUI.Title.Text = PlaneName2
+	local TargetStats = GUI.Parent.Target
+	local HUD = GUI.Parent.HUD
+	local ControlsA1,ControlsB1 = GUI.ControlsA,GUI.ControlsB
+	local FrameA1,FrameB1 = GUI.FrameA,GUI.FrameB
+	local C1A1,C1B1 = FrameA1.C1.Key,FrameB1.C1.Key
+	local C2A1,C2B1 = FrameA1.C2.Key,FrameB1.C2.Key
+	local C3A1,C3B1 = FrameA1.C3.Key,FrameB1.C3.Key
+	local C4A1,C4B1 = FrameA1.C4.Key,FrameB1.C4.Key
+	local C5A1,C5B1 = FrameA1.C5.Key,FrameB1.C5.Key
+	local C6A1,C7A1 = FrameA1.C6.Key,FrameA1.C7.Key
+	local ControlsA2,ControlsB2 = HUD.ControlsA,HUD.ControlsB
+	local FrameA2,FrameB2 = HUD.FrameA,HUD.FrameB
+	local C1A2,C1B2 = FrameA2.C1.Key,FrameB2.C1.Key
+	local C2A2,C2B2 = FrameA2.C2.Key,FrameB2.C2.Key
+	local C3A2,C3B2 = FrameA2.C3.Key,FrameB2.C3.Key
+	local C4A2,C4B2 = FrameA2.C4.Key,FrameB2.C4.Key
+	local C5A2,C5B2 = FrameA2.C5.Key,FrameB2.C5.Key
+	local C6A2,C7A2 = FrameA2.C6.Key,FrameA2.C7.Key
+	local GearText = GUI.Gear
+	for _,v in pairs(LandingGear) do --This section determines whether the gear are up or down
+		if v.Transparency == 1 then
+			GearUp = true
+		else
+			GearUp = false
+			break
+		end
+	end
+	local MaxSpeedScaled = math.ceil(MaxSpeed2/50)
+	for i = 1,(MaxSpeedScaled + 10) do --This creates a loop that clones the SpeedGUI and positions it accordingly
+		local SpeedGUI = HUD.Speed.Main
+		local Speed0 = SpeedGUI["Speed-0"]
+		local SpeedClone = Speed0:clone()
+		SpeedClone.Position = UDim2.new(0,0,1,-(80 + (75 * i)))
+		SpeedClone.Name = ("Speed-%i"):format(50 * i)
+		SpeedClone.Text.Text = tostring(50 * i)
+		SpeedClone.Parent = SpeedGUI
+	end
+	local MaxAltScaled = math.ceil(MaxAltitude2/500)
+	for i = 1,(MaxAltScaled + 10) do --This creates a loop that clones the AltitudeGUI and positions it accordingly
+		local AltGUI = HUD.Altitude.Main
+		local Altitude0 = AltGUI["Altitude-0"]
+		local AltClone = Altitude0:clone()
+		AltClone.Position = UDim2.new(0,0,1,-(80 + (75 * i)))
+		AltClone.Name = ("Altitude-%s"):format(tostring(0.5 * i))
+		AltClone.Text.Text = tostring(0.5 * i)
+		AltClone.Parent = AltGUI
+	end
+	GearText.Text = (GearUp and "Gear Up" or "Gear Down")
+	TargetStats.Visible = Targetable2
+	-------------------------------------------------------------------------------------
+	C1A1.Text = "Key: "..FlightControls.Engine.Value:upper()
+	if FlightControls.SpeedUp.Value == "ArrowKeyUp" then
+		C2A1.Text = "Key: ArrowKeyUp"
+	elseif FlightControls.SpeedUp.Value == "ArrowKeyDown" then
+		C2A1.Text = "Key: ArrowKeyDown"
+	else
+		C2A1.Text = "Key: "..FlightControls.SpeedUp.Value:upper()
+	end
+	if FlightControls.SlowDown.Value == "ArrowKeyUp" then
+		C3A1.Text = "Key: ArrowKeyUp"
+	elseif FlightControls.SlowDown.Value == "ArrowKeyDown" then
+		C3A1.Text = "Key: ArrowKeyDown"
+	else
+		C3A1.Text = "Key: "..FlightControls.SlowDown.Value:upper()
+	end
+	C4A1.Text = "Key: "..FlightControls.Gear.Value:upper()
+	C5A1.Text = "Key: "..TargetControls.Modes.Value:upper()
+	C5A1.Parent.Visible = Targetable2
+	C6A1.Text = "Key: "..FlightControls.Eject.Value:upper()
+	C6A1.Parent.Visible = Ejectable.Value
+	C7A1.Text = "Key: "..FlightControls.ToggleHUD.Value:upper()
+	C7A1.Parent.Visible = CamLock.Value
+	C1B1.Text = "Key: "..WeaponControls.FireMissile.Value:upper()
+	C1B1.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Missiles.Value)
+	C2B1.Text = "Key: "..WeaponControls.FireRockets.Value:upper()
+	C2B1.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Rockets.Value)
+	C3B1.Text = "Key: "..WeaponControls.FireGuns.Value:upper()
+	C3B1.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Guns.Value)
+	C4B1.Text = "Key: "..WeaponControls.DropBombs.Value:upper()
+	C4B1.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Bombs.Value)
+	C5B1.Text = "Key: "..WeaponControls.DeployFlares.Value:upper()
+	C5B1.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Flares.Value)
+	FrameB1.Title.Text = (WeaponsValue.Value and  "WeaponControls" or "No Weapons")
+	FrameB1.Title.Line.Visible = WeaponsValue.Value
+	ControlsA1.MouseButton1Click:connect(function() --This function allows the Flight Controls frame to be opened or closed without an external script
+		if GUIA1Visible then
+			GUIA1Visible = false
+			FrameA1:TweenPosition(UDim2.new(0,150,0,-190),"In","Quad",1,true)
+		elseif (not GUIA1Visible) then
+			GUIA1Visible = true
+			FrameA1:TweenPosition(UDim2.new(0,150,0,170),"Out","Quad",1,true)
+		end
+	end)
+	ControlsB1.MouseButton1Click:connect(function()
+		if GUIB1Visible then
+			GUIB1Visible = false
+			FrameB1:TweenPosition(UDim2.new(0,-150,0,-150),"In","Quad",1,true)
+		elseif (not GUIB1Visible) then
+			GUIB1Visible = true
+			FrameB1:TweenPosition(UDim2.new(0,-150,0,170),"Out","Quad",1,true)
+		end
+	end)
+	-------------------------------------------------------------------------------------
+	C1A2.Text = "Key: "..FlightControls.Engine.Value:upper()
+	if FlightControls.SpeedUp.Value == "ArrowKeyUp" then
+		C2A2.Text = "Key: ArrowKeyUp"
+	elseif FlightControls.SpeedUp.Value == "ArrowKeyDown" then
+		C2A2.Text = "Key: ArrowKeyDown"
+	else
+		C2A2.Text = "Key: "..FlightControls.SpeedUp.Value:upper()
+	end
+	if FlightControls.SlowDown.Value == "ArrowKeyUp" then
+		C3A2.Text = "Key: ArrowKeyUp"
+	elseif FlightControls.SlowDown.Value == "ArrowKeyDown" then
+		C3A2.Text = "Key: ArrowKeyDown"
+	else
+		C3A2.Text = "Key: "..FlightControls.SlowDown.Value:upper()
+	end
+	C4A2.Text = "Key: "..FlightControls.Gear.Value:upper()
+	C5A2.Text = "Key: "..TargetControls.Modes.Value:upper()
+	C5A2.Parent.Visible = Targetable2
+	C6A2.Text = "Key: "..FlightControls.Eject.Value:upper()
+	C6A2.Parent.Visible = Ejectable.Value
+	C7A2.Text = "Key: "..FlightControls.ToggleHUD.Value:upper()
+	C7A2.Parent.Visible = CamLock.Value
+	C1B2.Text = "Key: "..WeaponControls.FireMissile.Value:upper()
+	C1B2.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Missiles.Value)
+	C2B2.Text = "Key: "..WeaponControls.FireRockets.Value:upper()
+	C2B2.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Rockets.Value)
+	C3B2.Text = "Key: "..WeaponControls.FireGuns.Value:upper()
+	C3B2.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Guns.Value)
+	C4B2.Text = "Key: "..WeaponControls.DropBombs.Value:upper()
+	C4B2.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Bombs.Value)
+	C5B2.Text = "Key: "..WeaponControls.DeployFlares.Value:upper()
+	C5B2.Parent.Visible = (WeaponsValue.Value and WeaponsValue.Flares.Value)
+	FrameB2.Title.Text = (WeaponsValue.Value and  "WeaponControls" or "No Weapons")
+	FrameB2.Title.Line.Visible = WeaponsValue.Value
+	ControlsA2.MouseButton1Click:connect(function() --This function allows the Flight Controls frame to be opened or closed without an external script
+		if GUIA2Visible then
+			GUIA2Visible = false
+			FrameA2:TweenPosition(UDim2.new(0.5,20,0,-170),"In","Quad",1,true)
+		elseif (not GUIA2Visible) then
+			GUIA2Visible = true
+			FrameA2:TweenPosition(UDim2.new(0.5,20,0,100),"Out","Quad",1,true)
+		end
+	end)
+	ControlsB2.MouseButton1Click:connect(function()
+		if GUIB2Visible then
+			GUIB2Visible = false
+			FrameB2:TweenPosition(UDim2.new(0.5,-320,0,-170),"In","Quad",1,true)
+		elseif (not GUIB2Visible) then
+			GUIB2Visible = true
+			FrameB2:TweenPosition(UDim2.new(0.5,-320,0,100),"Out","Quad",1,true)
+		end
+	end)
+end
+
+function GetRoll(CF) --This function gets the rotation of the Engine. Credit to DevAdrian for this
+	local CFRight = CF * CFrame.Angles(0,math.rad(90),0)
+	local CFNoRollRight = CFrame.new(CF.p,CF.p + CF.lookVector) * CFrame.Angles(0,math.rad(90),0)
+	local CFDiff = CFRight:toObjectSpace(CFNoRollRight)
+	return (-math.atan2(CFDiff.lookVector.Y, CFDiff.lookVector.Z) % (math.pi * 2) + math.pi)
+end
+
+function GetPitch(CF) --This function gets the pitch of the Engine. Credit to DevAdrian for this
+	local LV = CF.lookVector
+	local XZDist = math.sqrt(LV.x ^ 2 + LV.z ^ 2)
+	return math.atan(LV.y / XZDist)
+end
+
+function UpdateCamera() --This function uses the RunService to update the camera. It happens very fast so it is smooth
+	if (not LockedCam) then
+		Camera.CameraType = CameraType2
+	elseif LockedCam then
+		local HeadCF = Character.Head.CFrame
+		local PlaneSize = Plane:GetModelSize().magnitude/3
+		local Origin = HeadCF.p + (HeadCF.lookVector * (PlaneSize - 1))
+		local Target = HeadCF.p + (HeadCF.lookVector * PlaneSize)
+		Camera.CameraType = Enum.CameraType.Scriptable
+		Camera.CoordinateFrame = CFrame.new(Origin,Target)
+		Camera:SetRoll(2 * math.pi - GetRoll(Character.Head.CFrame))
+	end
+end
+
+function UpdateTargetStats() --This function updates the stats about the Target
+	local GUI = GUIClone.Target
+	if TargetPlayer
+	and TargetPlayer.Character
+	and TargetPlayer.Character:FindFirstChild("Torso") then
+		local myHead = Character.Head
+		local TorsoPos = TargetPlayer.Character.Torso.CFrame
+		local Distance = (myHead.CFrame.p - TorsoPos.p).magnitude
+		local TargetSpeed = (TargetPlayer.Character.Torso.Velocity).magnitude
+		local TargetAlt = TargetPlayer.Character.Torso.Position.Y
+		GUI.LockName.Text = ("Target: %s"):format(TargetPlayer.Name)
+		GUI.Dist.Text = ("Distance: %s"):format(tostring(math.floor(Distance * 10)/10))
+		GUI.Speed.Text = ("Speed: %s"):format(tostring(math.floor(TargetSpeed * 10)/10))
+		GUI.Altitude.Text = ("Altitude: %s"):format(tostring(math.floor(TargetAlt * 10)/10))
+	else
+		GUI.LockName.Text = "Target: None"
+		GUI.Dist.Text = "Distance: N/A"
+		GUI.Speed.Text = "Speed: N/A"
+		GUI.Altitude.Text = "Altitude: N/A"
+	end
+end
+
+function UpdateHUD(GUI) --This function updates the HUD whenever the camera is locked
+	GUI.Roll.Rotation = math.deg(GetRoll(Character.Head.CFrame))
+	local PitchNum = math.deg(GetPitch(Character.Head.CFrame))/90
+	GUI.Roll.Pitch.Position = UDim2.new(0,-200,0,-500 + (PitchNum * 450))
+	local SpeedScaled = TrueAirSpeed/50
+	GUI.Speed.Main.Position = UDim2.new(0,0,0.5,SpeedScaled * 75)
+	GUI.Speed.Disp.Text.Text = RoundNumber(TrueAirSpeed)
+	local AltScaled = RoundNumber(Engine.Position.Y)/500
+	GUI.Altitude.Main.Position = UDim2.new(0,0,0.5,AltScaled * 75)
+	GUI.Altitude.Disp.Text.Text = RoundNumber(Engine.Position.Y)
+	local NegFactor = (Engine.Velocity.y/math.abs(Engine.Velocity.y))
+	local VerticalSpeed = RoundNumber(math.abs(Engine.Velocity.y))
+	GUI.ClimbRate.Text = ("VSI: %i"):format(VerticalSpeed * NegFactor)
+	GUI.GearStatus.Text = (GearUp and "Gear Up" or "Gear Down")
+	GUI.GearStatus.TextColor3 = (GearUp and Color3.new(0,1,0) or Color3.new(1,0,0))
+	GUI.EngineStatus.Text = (EngineOn and "Engine On" or "Engine Off")
+	GUI.EngineStatus.TextColor3 = (EngineOn and Color3.new(0,1,0) or Color3.new(1,0,0))
+	GUI.StallWarn.Visible = ((not Taxi()) and Stall())
+	GUI.PullUp.Visible = (EngineOn and (not Taxi()) and (AltRestrict.Value) and (Engine.Position.Y < (MinAltitude2 + 20)))
+	GUI.TaxiStatus.Visible = (Engine and Taxi())
+	GUI.Throttle.Bar.Tray.Position = UDim2.new(0,0,1,-(Throttle * 460))
+	GUI.Throttle.Bar.Tray.Size = UDim2.new(1,0,0,(Throttle * 460))
+	GUI.Throttle.Disp.Text = math.abs(math.floor(Throttle * 100)).."%"
+	local StallLinePos = (StallSpeed2/math.floor(TrueAirSpeed + 0.5)) * (StallSpeed2/MaxSpeed2)
+	local StallLinePosFix = (StallLinePos > 1 and 1 or StallLinePos < 0 and 0 or StallLinePos)
+	GUI.Throttle.Bar.StallLine.Position = UDim2.new(0,0,1 - StallLinePosFix,0)
+	GUI.Throttle.Bar.Tray.BackgroundColor3 = (Throttle <= StallLinePosFix and Color3.new(1,0,0) or Color3.new(0,1,0))
+end
+
+function UpdateGUI(Taxiing,Stalling) --This function updates the GUI.
+	local GUI = GUIClone.Main
+	local HUD = GUIClone.HUD
+	GUI.Visible = (not LockedCam)
+	HUD.Visible = LockedCam
+	if Targetable2 then UpdateTargetStats() end
+	if LockedCam then UpdateHUD(HUD) end
+	GUI.PullUp.Visible = (EngineOn and (not Taxiing) and (AltRestrict.Value) and (Engine.Position.Y < (MinAltitude2 + 20)))
+	GUI.Taxi.Visible = (EngineOn and Taxiing)
+	GUI.Stall.Visible = ((not Taxiing) and Stalling)
+	GUI.Altitude.Text = "Altitude: "..RoundNumber(Engine.Position.Y)
+	GUI.Speed.Text = "Speed: "..RoundNumber(TrueAirSpeed)
+	GUI.Throttle.Bar.Tray.Size = UDim2.new(Throttle,0,1,0)
+	GUI.Throttle.Percent.Text = math.abs(math.floor(Throttle * 100)).."%"
+	local StallLinePos = (StallSpeed2/math.floor(TrueAirSpeed + 0.5)) * (StallSpeed2/MaxSpeed2)
+	local StallLinePosFix = (StallLinePos > 1 and 1 or StallLinePos < 0 and 0 or StallLinePos)
+	GUI.Throttle.Bar.StallLine.Position = UDim2.new(StallLinePosFix,0,0,0)
+	GUI.Throttle.Bar.Tray.BackgroundColor3 = (Throttle <= StallLinePosFix and Color3.new(1,0,0) or Color3.new(0,2/3,0))
+end
+
+function CalculateSpeed() --This function calculates the current speed
+	while Selected do
+		if EngineOn then
+			CurrentSpeed = (CurrentSpeed < DesiredSpeed and CurrentSpeed + 1 or CurrentSpeed - 1) --A simple ternary operation that calculates the currentspeed
+			CurrentSpeed = (CurrentSpeed < 0 and 0 or CurrentSpeed > MaxSpeed2 and MaxSpeed2 or CurrentSpeed) --This fixes the currentspeed
+		end
+		wait(0.2 - (Acceleration2/5e3))
+	end
+end
+
+function GetLowestPoint() --This function gets the lowest point of the plane (Credit to Crazyman32 for this)
+	if (#LandingGear == 0) then
+		LowestPoint = (Engine.Position.Y + 5 + (Engine.Size.Y/2))
+		return
+	end
+	for _,v in pairs(LandingGear) do
+		local Set0 = (Engine.Position.Y - (v.CFrame * CFrame.new((v.Size.X/2),0,0)).Y)
+		local Set1 = (Engine.Position.Y - (v.CFrame * CFrame.new(-(v.Size.X/2),0,0)).Y)
+		local Set2 = (Engine.Position.Y - (v.CFrame * CFrame.new(0,(v.Size.Y/2),0)).Y)
+		local Set3 = (Engine.Position.Y - (v.CFrame * CFrame.new(0,-(v.Size.Y/2),0)).Y)
+		local Set4 = (Engine.Position.Y - (v.CFrame * CFrame.new(0,0,(v.Size.Z/2))).Y)
+		local Set5 = (Engine.Position.Y - (v.CFrame * CFrame.new(0,0,-(v.Size.Z/2))).Y)
+		local Max = (math.max(Set0,Set1,Set2,Set3,Set4,Set5) + 5)
+		LowestPoint = (Max > LowestPoint and Max or LowestPoint)
+	end
+end
+
+function GetBankAngle(M) --This function calculates the Bank Angle (Credit to Crazyman32 for this)
+	local VSX,X = M.ViewSizeX,M.X
+	local Ratio = (((VSX / 2) - X)/(VSX / 2))
+	Ratio = (Ratio < -1 and -1 or Ratio > 1 and 1 or Ratio)
+	return math.rad(Ratio * MaxBank2)
+end
+
+function Taxi() --This function determines whether the plane is taxiing or not
+	local Ray = Ray.new(Engine.Position,Vector3.new(0,-LowestPoint,0))
+	return (TrueAirSpeed <= StallSpeed2 and game.Workspace:FindPartOnRay(Ray,Plane))
+end
+
+function Stall() --This function determines whether the plane is stalling or not
+	return ((AltRestrict.Value and Engine.Position.Y > MaxAltitude2) or TrueAirSpeed < StallSpeed2)
+end
+
+function FlyMain(M) --This is the main flying function
+	if Selected then
+		local BankAngle = GetBankAngle(M) --This uses the "GetBankAngle" function to calculate the Bank Angle
+		local Taxi,Stall = Taxi(),Stall()
+		if EngineOn then
+			Engine.Thrust.velocity = (Engine.CFrame.lookVector * CurrentSpeed) + Vector3.new(0,0.15,0)
+			if Taxi then
+				if (CurrentSpeed < 2) then
+					Thrust.maxForce = Vector3.new(0,0,0)
+					Direction.maxTorque = Vector3.new(0,0,0)
+				else
+					local VSX,X = M.ViewSizeX,M.X
+					local RatioX = math.rad(((VSX / 2) - X) / (VSX / 2))
+					local YawSpeed = 15 * RatioX * (TrueAirSpeed / 100)
+					Thrust.maxForce = Vector3.new(math.huge,0,math.huge)
+					Direction.maxTorque = Vector3.new(0,math.huge,0)
+					Direction.cframe = Engine.CFrame * CFrame.Angles(0,YawSpeed,0)
+				end
+			else
+				Thrust.maxForce = ((not Stall) and HugeVector or Vector3.new(0,0,0))
+				Direction.maxTorque = HugeVector
+				if SimulationMode.Value then
+					local Rotation = 2 * math.pi - GetRoll(Engine.CFrame)
+					local YawRotation = math.rad(math.sin(Rotation * 2))
+					local YawSpeed = (math.abs(Rotation) > math.pi / 2 and YawRotation / 2 or YawRotation)
+					local SpeedScale = math.min((TrueAirSpeed / (MaxSpeed2 / 4)),1)
+					local PitchSpeed = SimulationMode.PitchSpeed.Value * SpeedScale
+					local RollSpeed = SimulationMode.RollSpeed.Value * SpeedScale
+					local VSX,X = M.ViewSizeX,M.X
+					local VSY,Y = M.ViewSizeY,M.Y
+					local RatioX = math.rad(((VSX / 2) - X) / (VSX / 2))
+					local RatioY = math.rad(((VSY / 2) - Y) / (VSY / 2))
+					Direction.cframe = Engine.CFrame * CFrame.Angles(RatioY * PitchSpeed,-YawSpeed,RatioX * RollSpeed)
+				else
+					Direction.cframe = (M.Hit * CFrame.Angles(0,0,BankAngle))
+				end
+			end
+			if ((AltRestrict.Value) and (Engine.Position.Y < MinAltitude2)) then --If there are altitude restrictions and you are below it...
+				AutoCrash.Value = true
+			end
+		elseif (not EngineOn) then
+			Thrust.maxForce = Vector3.new(0,0,0)
+			Thrust.velocity = Vector3.new(0,0,0)
+			Direction.maxTorque = Vector3.new(0,0,0)
+		end
+		TrueAirSpeed = Engine.Velocity.magnitude
+		UpdateGUI(Taxi,Stall) --This activates the "UpdateGUI" function
+	end
+end
+
+function onKeyDown(Key) --This function is activated whenever a key is pressed
+	local Key = Key:lower()
+	if (Key == FlightControls.Engine.Value:lower()) then --If you press the engine key...
+		local GUI = GUIClone.Main
+		if (not EngineOn) then
+			EngineOn = true
+			DesiredSpeed = 0
+			CurrentSpeed = 0
+			Throttle = 0
+			GUI.Engine.Visible = false
+			CalculateSpeed()
+		elseif EngineOn then
+			EngineOn = false
+			DesiredSpeed = 0
+			CurrentSpeed = 0
+			Throttle = 0
+			GUI.Engine.Visible = true
+		end
+	end
+	if (Key == FlightControls.Gear.Value:lower()) then --If you press the change gear key...
+		local GUI = GUIClone.Main
+		local Taxiing = Taxi()
+		if (#LandingGear ~= 0) then
+			if (not Taxiing) then
+				ChangeGear()
+				if (not GearUp) then
+					GearUp = true
+					GUI.Gear.Text = "Gear Up"
+				elseif GearUp then
+					GearUp = false
+					GUI.Gear.Text = "Gear Down"
+				end
+			end
+		end
+	end
+	if SUAK and Key:byte() == SpeedUp2 or (not SUAK) and (Key == SpeedUp2) then --If you press the speed up key...
+		Accelerating = true
+		IncreaseSpd()
+	end
+	if SDAK and Key:byte() == SlowDown2 or (not SDAK) and (Key == SlowDown2) then --If you press the slow down key...
+		Decelerating = true
+		DecreaseSpd()
+	end
+	if (Key == TargetControls.Modes.Value:lower()) then --If you press the change modes key...
+		if Targetable2 then
+			if EngineOn then
+				if (not Targeting) then
+					M2.Icon = AimingIcon
+					Targeting = true
+				elseif Targeting then
+					M2.Icon = NormalIcon
+					Targeting = false
+					Locked = false
+					AimGUI.Enabled = false
+					LockGUI.Enabled = false
+					TargetPlayer = nil
+				end
+			end
+		end
+	end
+	if (Key == FlightControls.Eject.Value:lower()) then
+		if EngineOn then
+			local Taxiing = Taxi()
+			if (not Taxiing) then
+				if Ejectable.Value then
+					if (not Plane.Ejected.Value) then
+						Plane.Ejected.Value = true
+						local Seat = MainParts.Seat
+						local EjectClone = Tool.Ejector:clone()
+						EjectClone.Parent = Player.PlayerGui
+						EjectClone.Disabled = false
+						local Fire = Instance.new("Fire")
+						Fire.Parent = Engine
+						Fire.Heat = 25
+						Fire.Size = 30
+						local Smoke = Instance.new("Smoke")
+						Smoke.Parent = Engine
+						Smoke.Color = Color3.new(1/3,1/3,1/3)
+						Smoke.Opacity = 0.7
+						Smoke.RiseVelocity = 10
+						Smoke.Size = 10
+						onDeselectForced()
+						Seat.SeatWeld:Destroy()
+					end
+				end
+			end
+		end
+	end
+	if (Key == FlightControls.ToggleHUD.Value:lower()) then
+		LockedCam = (not LockedCam)
+	end
+	if (Key == WeaponControls.FireGuns.Value:lower()) then --If you press the fire guns key...
+		if (not WeaponsValue.Value) then return end --If there aren't weapons...
+		if (not WeaponsValue.Guns.Value) then return end --If there aren't guns...
+		if (not EngineOn) then return end
+		local Taxiing = Taxi()
+		if (not Taxiing) then --This prevents you from firing the gun while your on the ground
+			FiringGun = true
+			FireMachineGun(Weapons) --This activates the "FireMachineGun" function
+		end
+	end
+	if (Key == WeaponControls.FireRockets.Value:lower()) then --If you press the fire rockets key...
+		if (not WeaponsValue.Value) then return end
+		if (not WeaponsValue.Rockets.Value) then return end
+		if (not EngineOn) then return end
+		local Taxiing = Taxi()
+		if (not Taxiing) then
+			if RocketEnabled then
+				RocketEnabled = false
+				FireRockets(Weapons)
+				ReloadRocket(RocketTime2)
+			end
+		end
+	end
+	if (Key == WeaponControls.DeployFlares.Value:lower()) then --If you press the deploy flares key...
+		if (not WeaponsValue.Value) then return end
+		if (not WeaponsValue.Flares.Value) then return end
+		if (not EngineOn) then return end
+		local Taxiing = Taxi()
+		if (not Taxiing) then
+			if FlareEnabled then --This makes the plane deploy flares 5 times every 0.2 seconds before you have to reload
+				FlareEnabled = false
+				for i = 1,math.random(4,6) do
+					DeployFlares(Weapons)
+					wait(0.2)
+				end
+				ReloadFlare(FlareTime2)
+			end
+		end
+	end
+	if (Key == WeaponControls.DropBombs.Value:lower()) then --If you press the drop bombs key...
+		if (not WeaponsValue.Value) then return end
+		if (not WeaponsValue.Bombs.Value) then return end
+		if (not EngineOn) then return end
+		local Taxiing = Taxi()
+		if (not Taxiing) then
+			if BombEnabled then
+				BombEnabled = false
+				local BombSpawns = {}
+				for _,v in pairs(Weapons:GetChildren()) do
+					if v:IsA("BasePart") then
+						if v.Name == "BombSpawn" then
+							table.insert(BombSpawns,v)
+						end
+					end
+				end
+				local CurrentSpawn = BombSpawns[math.random(1,#BombSpawns)] --This line selects a random bomb spawn
+				if Locked then
+					DropGuidedBomb(CurrentSpawn)
+					ReloadBomb((BombTime2 * 2))
+				elseif (not Locked) then
+					for i = 1,5 do
+						DropBomb(Weapons)
+						wait(0.3)
+					end
+					ReloadBomb(BombTime2)
+				end
+			end
+		end
+	end
+	if (Key == WeaponControls.FireMissile.Value:lower()) then --If you press the fire missile key...
+		if (not WeaponsValue.Value) then return end
+		if (not WeaponsValue.Missiles.Value) then return end
+		if (not EngineOn) then return end
+		local Taxiing = Taxi()
+		if (not Taxiing) then
+			if MissileEnabled then
+				MissileEnabled = false
+				local MissileSpawns = {}
+				for _,v in pairs(Weapons:GetChildren()) do
+					if v:IsA("BasePart") then
+						if v.Name == "MissileSpawn" then
+							table.insert(MissileSpawns,v)
+						end
+					end
+				end
+				local CurrentSpawn = MissileSpawns[math.random(1,#MissileSpawns)] --This line selects a random missile spawn
+				if Locked then
+					FireGuidedMissile(CurrentSpawn)
+					ReloadMissile((MissileTime2 * 2))
+				elseif (not Locked) then
+					FireMissile(CurrentSpawn)
+					ReloadMissile(MissileTime2)
+				end
+			end
+		end
+	end
+	if (Key == TargetControls.UnTarget.Value:lower()) then --If you press the untarget key...
+		if Targetable2 then
+			if Locked then
+				Locked = false
+			end
+		end
+	end
+end
+
+function onKeyUp(Key) --This function is activated when you let go of a key
+	local Key = Key:lower()
+	if SUAK and Key:byte() == SpeedUp2 or (not SUAK) and (Key == SpeedUp2) then --If you let go of the speed up key...
+		Accelerating = false
+	end
+	if SDAK and Key:byte() == SlowDown2 or (not SDAK) and (Key == SlowDown2) then --If you let go of the slow down key...
+		Decelerating = false
+	end
+	if (Key == WeaponControls.FireGuns.Value) then --If you let go of the fire guns key...
+		FiringGun = false
+	end
+end
+
+function onSelected(M) --This function is activated when you select the Plane tool
+	Selected = true
+	M2 = M
+	FixVars() --This activates the "FixVars" function
+	GetGear(Gear) --This activates the "GetGear" function
+	GetLowestPoint() --This activates the "GetLowestPoint" function
+	ToolSelect.Value = true
+	GUIClone = GUI:clone() --This line and the next one clones the plane GUI and puts it into the player
+	GUIClone.Parent = Player.PlayerGui
+	SetUpGUI() --This activates the "SetUpGui" function
+	Camera.CameraType = CameraType2 --This makes your cameratype the customize cameratype
+	if Targetable2 then --If the plane can target, then it will create the objects required for targeting
+		AimGUI = Instance.new("BillboardGui",Player.PlayerGui)
+		AimGUI.AlwaysOnTop = true
+		AimGUI.Enabled = false
+		AimGUI.Size = UDim2.new(5,50,5,50)
+		local Label = Instance.new("ImageLabel",AimGUI)
+		Label.BackgroundTransparency = 1
+		Label.Image = "http://www.roblox.com/asset/?id=107388694"
+		Label.Size = UDim2.new(1,0,1,0)
+		---------------------------------------------------------------
+		LockGUI = Instance.new("BillboardGui",Player.PlayerGui)
+		LockGUI.AlwaysOnTop = true
+		LockGUI.Enabled = false
+		LockGUI.Size = UDim2.new(5,50,5,50)
+		local Label = Instance.new("ImageLabel",LockGUI)
+		Label.BackgroundTransparency = 1
+		Label.Image = "http://www.roblox.com/asset/?id=107388656"
+		Label.Size = UDim2.new(1,0,1,0)
+	end
+	M.Icon = NormalIcon
+	FTab[1] = M.Button1Down:connect(function() onButton1Down(M) end)
+	FTab[2] = M.KeyDown:connect(onKeyDown)
+	FTab[3] = M.KeyUp:connect(onKeyUp)
+	FTab[4] = RunService.RenderStepped:connect(function() onMouseMoved(M) end)
+	FTab[5] = RunService.RenderStepped:connect(function() FlyMain(M) end)
+	FTab[6] = RunService.RenderStepped:connect(UpdateCamera)
+end
+
+function onDeselected(M) --This function is activated when you deselect the Plane tool
+	if Selected then
+		Selected = false
+		LockedCam = false
+		for _,v in pairs(FTab) do --This disconnects all the connections. It prevents bugs
+			if v then
+				v:disconnect()
+				v = nil
+			end
+		end
+		Camera.CameraType = Enum.CameraType.Custom --This makes the CameraType "Custom"
+		Camera.CameraSubject = Character.Humanoid
+		if Targetable2 then --If the plane can target, then the objects required for targeting will be removed
+			AimGUI:remove()
+			LockGUI:remove()
+		end
+		if (not Taxi()) and EngineOn then --If you're not Taxiing and your engine is on...
+			if (not Deselect0.Value) and (not Plane.Ejected.Value) then --If you deselected the tool and didn't eject...
+				onDeselectForced()
+			end
+		end
+		CurrentSpeed = 0 --These couple of lines reset the plane
+		DesiredSpeed = 0
+		TrueAirSpeed = 0
+		EngineOn = false
+		Updating = false
+		Locked = false
+		Targeting = false
+		TargetPlayer = nil
+		ToolSelect.Value = false
+		GUIAVisible = true
+		GUIBVisible = true
+		GUIClone:remove()
+		if Engine:FindFirstChild("Thrust") then
+			Engine.Thrust.velocity = Vector3.new(0,0,0)
+			Engine.Thrust.maxForce = Vector3.new(0,0,0)
+		end
+		if Engine:FindFirstChild("Direction") then
+			Engine.Direction.maxTorque = Vector3.new(0,0,0)
+		end
+	end
+end
+
+function onDeselectFlying() --This function blows up the plane
+	if (not Deselect0.Value) then
+		onDeselected()
+		Plane:BreakJoints()
+		local Explosion = Instance.new("Explosion")
+		Explosion.Parent = game.Workspace
+		Explosion.Position = Engine.Position
+		Explosion.BlastRadius = Plane:GetModelSize().magnitude
+		Explosion.BlastPressure = 2e4
+		Character.Humanoid.Health = 0
+		Engine.Thrust:remove()
+		Engine.Direction:remove()
+		delay(5,function()
+			Plane:Destroy()
+		end)
+	end
+end
+
+function onDeselectForced() --This function is activated when you get out of the plane without deselecting the tool first
+	if Selected then
+		for _,v in pairs(IgnoreTable) do
+			if v then
+				v:Destroy()
+			end
+		end
+		onDeselected()
+		M2.Icon = "rbxasset://textures\\ArrowCursor.png" --This makes the mouse icon the normal icon
+	end
+end
+
+script.Parent.Selected:connect(onSelected) --The next 3 lines activate the given functions
+script.Parent.Deselected:connect(onDeselected)
+Deselect0.Changed:connect(onDeselectForced)
+Crashed.Changed:connect(onDeselectForced)
+
+--TurboFusion--
