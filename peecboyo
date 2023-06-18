@@ -1,0 +1,236 @@
+Hierarchy of the GUI, and finding out what is wrong with it.
+
+The goal of the GUI: When you press Play, the "Boot" Frame is enabled, and you select between the "BarOS" button, or the "Progressbar" button. That frame becomes Invisible, and is disabled, and a script Inside "Progressbar" is used for the Button Logic
+
+--Button Logic Script inside "Progressbar":
+
+script.Parent.MouseButton1Click:Connect(function()
+	local TweenService = game:GetService("TweenService")
+	local Tweeninfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	local Tweenobj = {script.Parent, script.Parent.BarOS, script.Parent.Parent["BarOS Title"], script.Parent.Parent["Progressbar Title"], script.Parent.Parent.SelectSystem}
+
+	for _, obj in pairs(Tweenobj) do
+		if obj:IsA("TextLabel") then
+			local tween = TweenService:Create(obj, Tweeninfo, {TextTransparency = 1})
+			tween:Play()
+		elseif obj:IsA("ImageButton") then
+			local tween = TweenService:Create(obj, Tweeninfo, {ImageTransparency = 1})
+			tween:Play()
+		end
+	end
+	wait(1)
+	script.Parent.Parent.Parent.Boot.Visible = false
+	script.Parent.Parent.Parent.Boot.Enabled = false
+	script.Parent.Parent.Parent.BootPB.Visible = true
+	script.Parent.Parent.Parent.BootPB.Enabled = true
+	
+end)
+--End of Button Logic Script
+
+
+
+After that script runs, "BootBP" is enabled and Visible "CheckMemoryComplete" is supposed to run:
+
+--CheckMemoryComplete Script Start
+game.Workspace.RemoteEvents.MemoryCheckCompleted.OnClientEvent:Connect(function()
+	local TweenService = game:GetService("TweenService")
+	local Tweeninfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	local Tweenobj = {
+		script.Parent,
+		script.Parent.SYSInfo2,
+		script.Parent.SYSInfo2.SYS_HDDC,
+		script.Parent.SYSInfo2.SYS_HDDD,
+		script.Parent.SYSInfo2.SYS_SYSCODE,
+		script.Parent.SYSInfo2.SYS_GRAPHICSCARD,
+		script.Parent.SYS_CPU,
+		script.Parent.SYS_MEMORY
+	}
+
+	local memCheckEvent = game.Workspace.RemoteEvents.MemoryCheckCompleted
+
+	for _, obj in pairs(Tweenobj) do
+		if obj:IsA("TextLabel") then
+			-- Replace the text on the TextLabel objects
+			obj.Text = "New Text"
+
+			local tween1 = TweenService:Create(obj, Tweeninfo, { TextTransparency = 0 })
+			tween1:Play()
+		elseif obj:IsA("Frame") then
+			local tween2 = TweenService:Create(obj, Tweeninfo, { BackgroundTransparency = 0 })
+			tween2:Play()
+		end
+	end
+
+	wait(2)
+
+	for _, obj in pairs(Tweenobj) do
+		if obj:IsA("TextLabel") then
+			local tween1 = TweenService:Create(obj, Tweeninfo, { TextTransparency = 1 })
+			tween1:Play()
+		elseif obj:IsA("Frame") then
+			local tween2 = TweenService:Create(obj, Tweeninfo, { BackgroundTransparency = 1 })
+			tween2:Play()
+		end
+	end
+
+	wait(1)
+
+	script.Parent.Parent.Visible = true
+	script.Parent.Parent.Parent.BootPB.AMTCheckMemory.LoadScript.Enabled = true
+	script.Parent.Parent.Parent.BootPB.AMTCheckCPU.LoadScript.Enabled = true
+
+	game.ReplicatedStorage.Boot.CheckComplete:InvokeServer()
+end)
+
+-- CheckMemoryComplete Script End
+
+After the CheckMemoryComplete Script runs, I believe it checks in Replicated Storage for a RemoteEvent or a RemoteFunction. but I am unsure what the functionality is missing, or if I am doing something wrong.
+
+
+
+
+--The Full Hierarchy breakdown:
+
+
+1. I have a table named "SetHardware" as a child of my "Game" Gui, and a frame named "MainFrame". It's important to remember that "SetHardware" is not a child of MainFrame but a child of "Game" Gui.
+
+2. Inside the "MainFrame" frame, I have 4 frames named "Boot", "BootPB", "PBOsList", and "Progressbar 95"
+
+3. Inside "Boot" I have 2 Image Buttons named "BarOS" and "Progressbar", and 3 TextLabels named "BarOS Title" ProgressBar Title" and "Select system.
+
+4. Inside BootPB, I have a frame named "SystemInfo" an ImageLabel named "AMTImage", and 6 TextLabels named "SYS_CPU", "SYS_MEMORY", "AMTImage", "AMTCheckCPU", "AMTText", and "AMTVer"
+
+ 5. Inside the "SystemInfo" I have 4 TextLabels named "SYS_GRAPHICSCARD", "SYS_HDDC", "SYS_HDDD", "SYS_SYSCODE"
+
+6. Inside "PBOSList" I have a TextLable named "SelectOS", a frame named "OsSelection"
+
+7. Inside "OsSelection" I have a script named "OnSelectionLogic", and "ProgressBar" frame.
+
+8. Inside the "ProgressBar" I have 4 frames named "01PB95", "02PB95P", "03PB98", "04PB99", and "05PB2000"
+
+9. All of the frames Inside "ProgressBar" have a TextButton named Identically to the frame's name.
+
+10. The last frame that's inside of "MainFrame" is named "Progressbar 95", Inside of "Progressbar 95" there is 2 frames named "Boot" and "Desktop"
+
+11. Inside of the "Progressbar 95" "Boot" frame, there is an ImageLabel named "Background. 
+
+12. Inside of the "Background" ImageLabel, there is a frame named "LoadingBar" an ImageLabel named "Logo" and two TextLabels named "Description" and "Title"
+
+13. Inside of "Desktop" there is a frame named "My Menu", and a TextButton named "MuteMusic"
+
+14. Inside of "My Menu" there is a frame named "popup", a TextButton named "Button" an Image label named "Icon", and a TextLabel named "Title"
+
+15. Inside "popup" there is an empty frame named "Bar", a frame named "ComponentsSector", a frame named "Title" an ImageLable named "ComputerIcon", a TextLabel named "ComputerTitle", and a TextLabel named "SystemTitle".
+
+16. Inside "ComponentsSector" I have 10 frames named "CPU", "DVD", "FDD", "GPU", "HDD", "MON", "RAM", "SCD", "SCR", and "TEL".
+
+17. Inside the "Title" frame I have a TextButton named "Close", an ImageLabel named "Icon" and a TextLabel named "Title"
+
+
+
+I've listed the Scripts below to help everything make more sense.
+
+"SetHardware Script":
+
+_G.CPU = {"Grintel 386MK", "Grintel 486MK-1", "Grintel 486MK-2", "Grintel 486MK-3", "Grintel 486MK-4", "Grintel 586MK", "Grintel Clint I90"}
+_G.RAM = {"4MB DR1", "6MB DR1", "8MB DR1", "16MB DR1", "32MB DR2", "64MB DR2", "128MB DR2", "256MB DR3"}
+_G.HDD = {"128MB", "256MB", "350MB", "500MB", "750MB", "1GB", "2GB", "4GB"}
+_G.FDD = {"Floppy 50MB", "Floppy 100MB", "Floppy 250MB", "Floppy 500MB", "Floppy 750MB", "Floppy 1GB"}
+_G.GPU = {"VGA", "SVGA MK-1", "SVGA MK-2", "SVGA MK-3", "SVGA MK-4", "Veedoo 4MB"}
+_G.SCD = {"PC Speaker", "SC Boom", "SC Boom PRO", "SC Boom 32", "SC Boom 64", "SC Blow MK-1"}
+_G.DVD = {"DVD-ROM MK-1", "DVD-ROM MK-2", "DVD-ROM MK-3", "DVD-ROM MK-4", "DVD-ROM MK-5", "DVD-ROM MK-6"}
+_G.MON = {"13' CRT", "14' CRT", "15' CRT", "18' CRT", "20' CRT", "14' LCD", "15' LCD"}
+_G.TEL = {"PBNet 144k", "PBNet 256k", "PBNet 512k", "PBNet DSL", "PBNet Cable", "PBNet Cable 2"}
+_G.SYSTEM = {"Progressbar95", "Progressbar95+", "Progressbar98", "Progressbar 2000 (2000)", "Progressbar 2000 (MEEP)"}
+
+"OnSelectionLogic Script":
+
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local mainFrame = game.StarterGui.Game.MainFrame
+local osSelection = mainFrame.PBOSList.OsSelection
+local progressBar = osSelection.ProgressBar
+local operatingSystems = {
+	"01PB95",
+	"02PB95P",
+	"03PB98",
+	"04PB99",
+	"05PB2000"
+}
+
+local selectedOSIndex = 1 -- Current selected OS index (initially set to 1)
+
+local function fadeTextLabel(label, fadeIn)
+	local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut)
+	local targetTransparency = fadeIn and 0 or 1
+
+	local tween = TweenService:Create(label, tweenInfo, { TextTransparency = targetTransparency })
+	tween:Play()
+end
+
+local function selectOS()
+	-- Replace this function with the logic you want to execute when an OS is selected
+	print("Selected OS:", operatingSystems[selectedOSIndex])
+end
+
+-- Enable arrow key navigation and enter key selection
+UserInputService.InputBegan:Connect(function(input, isProcessed)
+	if isProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.Down or input.KeyCode == Enum.KeyCode.S then
+		-- Move down the OS selection
+		selectedOSIndex = selectedOSIndex + 1
+		if selectedOSIndex > #operatingSystems then
+			selectedOSIndex = 1
+		end
+
+		-- Fade out previously selected OS button's text
+		local previousButton = progressBar[operatingSystems[selectedOSIndex - 1]]
+		if previousButton then
+			fadeTextLabel(previousButton.TextLabel, false)
+		end
+
+		-- Fade in currently selected OS button's text
+		local currentButton = progressBar[operatingSystems[selectedOSIndex]]
+		if currentButton then
+			fadeTextLabel(currentButton.TextLabel, true)
+		end
+	elseif input.KeyCode == Enum.KeyCode.Up or input.KeyCode == Enum.KeyCode.W then
+		-- Move up the OS selection
+		selectedOSIndex = selectedOSIndex - 1
+		if selectedOSIndex < 1 then
+			selectedOSIndex = #operatingSystems
+		end
+
+		-- Fade out previously selected OS button's text
+		local previousButton = progressBar[operatingSystems[selectedOSIndex + 1]]
+		if previousButton then
+			fadeTextLabel(previousButton.TextLabel, false)
+		end
+
+		-- Fade in currently selected OS button's text
+		local currentButton = progressBar[operatingSystems[selectedOSIndex]]
+		if currentButton then
+			fadeTextLabel(currentButton.TextLabel, true)
+		end
+	elseif input.KeyCode == Enum.KeyCode.Return then
+		-- Select the current OS
+		selectOS()
+	end
+end)
+
+-- Disable button clicks
+for _, buttonName in ipairs(operatingSystems) do
+	local button = progressBar[buttonName]
+	if button then
+		button.MouseButton1Click:Connect(function()
+			-- Disable the button click
+		end)
+	end
+end
+
+
+
+
+
