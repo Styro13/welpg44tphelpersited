@@ -130,7 +130,7 @@ After the CheckMemoryComplete Script runs, I believe it checks in Replicated Sto
 
 I've listed the Scripts below to help everything make more sense.
 
-"SetHardware Script":
+--SetHardware Script Start
 
 _G.CPU = {"Grintel 386MK", "Grintel 486MK-1", "Grintel 486MK-2", "Grintel 486MK-3", "Grintel 486MK-4", "Grintel 586MK", "Grintel Clint I90"}
 _G.RAM = {"4MB DR1", "6MB DR1", "8MB DR1", "16MB DR1", "32MB DR2", "64MB DR2", "128MB DR2", "256MB DR3"}
@@ -143,7 +143,10 @@ _G.MON = {"13' CRT", "14' CRT", "15' CRT", "18' CRT", "20' CRT", "14' LCD", "15'
 _G.TEL = {"PBNet 144k", "PBNet 256k", "PBNet 512k", "PBNet DSL", "PBNet Cable", "PBNet Cable 2"}
 _G.SYSTEM = {"Progressbar95", "Progressbar95+", "Progressbar98", "Progressbar 2000 (2000)", "Progressbar 2000 (MEEP)"}
 
-"OnSelectionLogic Script":
+--SetHardware Script End
+
+
+-- OnSelectionLogic Script Start
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
@@ -231,6 +234,6 @@ for _, buttonName in ipairs(operatingSystems) do
 end
 
 
-
+--OnSelectionLogic End
 
 
